@@ -1,0 +1,306 @@
+tosca_definitions_version: cloudify_dsl_1_3
+
+imports:
+  - http://www.getcloudify.org/spec/cloudify/4.4/types.yaml
+  - plugin:cloudify-utilities-plugin
+
+node_types:
+  cloudify.nodes.docker.Root:
+    derived_from: cloudify.rest.Requests
+    properties:
+      api_version:
+        type: string
+
+  cloudify.nodes.docker.Container:
+    derived_from: cloudify.nodes.docker.Root
+    properties:
+      name:
+        type: string
+      image:
+        type: string
+      command:
+        type: string
+        default: ''
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          implementation: rest.cloudify_rest.tasks.execute
+          inputs:
+            template_file:
+              default: templates/container_create.yaml
+            params:
+              default:
+                api_version: { get_property: [SELF, api_version] }
+                name: { get_property: [SELF, name] }
+                image: { get_property: [SELF, image] }
+                command: { get_property: [SELF, command] }
+        start:
+          implementation: rest.cloudify_rest.tasks.execute
+          inputs:
+            template_file:
+              default: templates/container_start.yaml
+            params:
+              default:
+                api_version: { get_property: [SELF, api_version] }
+                name: { get_property: [SELF, name] }
+        stop:
+          implementation: rest.cloudify_rest.tasks.execute
+          inputs:
+            template_file:
+              default: templates/container_stop.yaml
+            params:
+              default:
+                api_version: { get_property: [SELF, api_version] }
+                name: { get_property: [SELF, name] }
+        delete:
+          implementation: rest.cloudify_rest.tasks.execute
+          inputs:
+            template_file:
+              default: templates/container_delete.yaml
+            params:
+              default:
+                api_version: { get_property: [SELF, api_version] }
+                name: { get_property: [SELF, name] }
+
+#  cloudify.nodes.docker.Network:
+#    derived_from: cloudify.nodes.docker.Root
+#    properties:
+#      name:
+#        type: string
+#      cidr:
+#        type: string
+#    interfaces:
+#      cloudify.interfaces.lifecycle:
+#        create:
+#          inputs:
+#            template_file:
+#              default: templates/network_create.yaml
+#            params:
+#              default:
+#                api_version: { get_property: [SELF, api_version] }
+#                name: { get_property: [SELF, name] }
+#                cidr: { get_property: [SELF, cidr] }
+#        delete:
+#          inputs:
+#            template_file:
+#              default: templates/network_delete.yaml
+#            params:
+#              default:
+#                api_version: { get_property: [SELF, api_version] }
+#                name: { get_property: [SELF, name] }
+#
+#  cloudify.nodes.docker.network.Interface:
+#    derived_from: cloudify.nodes.docker.Root
+#    properties:
+#      container_name:
+#        type: string
+#      network_name:
+#        type: string
+#    interfaces:
+#      cloudify.interfaces.lifecycle:
+#        create:
+#          inputs:
+#            template_file:
+#              default: templates/network_connect.yaml
+#            params:
+#              default:
+#                api_version: { get_property: [SELF, api_version] }
+#                container_name: { get_property: [SELF, container_name] }
+#                network_name: { get_property: [SELF, network_name] }
+#        configure:
+#          inputs:
+#            template_file:
+#              default: templates/network_inspect.yaml
+#            params:
+#              default:
+#                api_version: { get_property: [SELF, api_version] }
+#                container_name: { get_property: [SELF, container_name] }
+#                network_name: { get_property: [SELF, network_name] }
+#        # start - container_get_physical_interface.yaml ?
+#        delete:
+#          inputs:
+#            template_file:
+#              default: templates/network_disconnect.yaml
+#            params:
+#              default:
+#                api_version: { get_property: [SELF, api_version] }
+#                container_name: { get_property: [SELF, container_name] }
+#                network_name: { get_property: [SELF, network_name] }
+#    # runtime properties:
+#    # - mac
+#    # - ip
+#
+#  cloudify.nodes.docker.container.NetworkingConfig:
+#    derived_from: cloudify.nodes.docker.Root
+#    properties:
+#      container_name:
+#        type: string
+#      subnet_cidr:
+#        type: string
+#      next_hop_ip:
+#        type: string
+#      mac:
+#        type: string
+#    interfaces:
+#      cloudify.interfaces.lifecycle:
+#        create:
+#          inputs:
+#            template_file:
+#              default: templates/container_configure_networking.yaml
+#            params:
+#              default:
+#                api_version: { get_property: [SELF, api_version] }
+#                container_name: { get_property: [SELF, container_name] }
+#                subnet_cidr: { get_property: [SELF, subnet_cidr] }
+#                next_hop_ip: { get_property: [SELF, next_hop_ip] }
+#                mac: { get_property: [SELF, mac] }
+#
+#
+#  cloudify.nodes.docker.ovs.Bridge:
+#    derived_from: cloudify.nodes.docker.Root
+#    properties:
+#      name:
+#        type: string
+#    interfaces:
+#      cloudify.interfaces.lifecycle:
+#        create:
+#          inputs:
+#            template_file:
+#              default: templates/ovs_bridge_create.yaml
+#            params:
+#              default:
+#                api_version: { get_property: [SELF, api_version] }
+#                name: { get_property: [SELF, name] }
+#        delete:
+#          inputs:
+#            template_file:
+#              default: templates/ovs_bridge_delete.yaml
+#            params:
+#              default:
+#                api_version: { get_property: [SELF, api_version] }
+#                name: { get_property: [SELF, name] }
+#
+#  cloudify.nodes.docker.ovs.bridge.Interface:
+#    derived_from: cloudify.nodes.docker.Root
+#    properties:
+#      name:
+#        type: string
+#      container_name:
+#        type: string
+#      bridge_name:
+#        type: string
+#    interfaces:
+#      cloudify.interfaces.lifecycle:
+#        create:
+#          inputs:
+#            template_file:
+#              default: templates/ovs_interface_create.yaml
+#            params:
+#              default:
+#                api_version: { get_property: [SELF, api_version] }
+#                name: { get_property: [SELF, name] }
+#                container_name: { get_property: [SELF, container_name] }
+#                bridge_name: { get_property: [SELF, bridge_name] }
+#        start:
+#          inputs:
+#            template_file:
+#              default: templates/ovs_interface_get_openflow_id.yaml
+#            params:
+#              default:
+#                api_version: { get_property: [SELF, api_version] }
+#                name: { get_property: [SELF, name] }
+#                container_name: { get_property: [SELF, container_name] }
+#                bridge_name: { get_property: [SELF, bridge_name] }
+#        delete:
+#          inputs:
+#            template_file:
+#              default: templates/ovs_interface_delete.yaml
+#            params:
+#              default:
+#                api_version: { get_property: [SELF, api_version] }
+#                name: { get_property: [SELF, name] }
+#                container_name: { get_property: [SELF, container_name] }
+#                bridge_name: { get_property: [SELF, bridge_name] }
+#
+#  cloudify.nodes.docker.ovs.bridge.PatchInterface:
+#    derived_from: cloudify.nodes.docker.Root
+#    properties:
+#      name:
+#        type: string
+#      container_name:
+#        type: string
+#      bridge_name:
+#        type: string
+#      peer_interface_name:
+#        type: string
+#    interfaces:
+#      cloudify.interfaces.lifecycle:
+#        create:
+#          inputs:
+#            template_file:
+#              default: templates/ovs_interface_create.yaml
+#            params:
+#              default:
+#                api_version: { get_property: [SELF, api_version] }
+#                name: { get_property: [SELF, name] }
+#                container_name: { get_property: [SELF, container_name] }
+#                bridge_name: { get_property: [SELF, bridge_name] }
+#                peer_interface_name: { get_property: [SELF, peer_interface_name] }
+#        start:
+#          inputs:
+#            template_file:
+#              default: templates/ovs_interface_get_openflow_id.yaml
+#            params:
+#              default:
+#                api_version: { get_property: [SELF, api_version] }
+#                name: { get_property: [SELF, name] }
+#                container_name: { get_property: [SELF, container_name] }
+#                bridge_name: { get_property: [SELF, bridge_name] }
+#        delete:
+#          inputs:
+#            template_file:
+#              default: templates/ovs_interface_delete.yaml
+#            params:
+#              default:
+#                api_version: { get_property: [SELF, api_version] }
+#                name: { get_property: [SELF, name] }
+#                container_name: { get_property: [SELF, container_name] }
+#                bridge_name: { get_property: [SELF, bridge_name] }
+#                peer_interface_name: { get_property: [SELF, peer_interface_name] }
+#
+#  cloudify.nodes.docker.ovs.bridge.Flows:
+#    derived_from: cloudify.nodes.docker.Root
+#    properties:
+#      container_name:
+#        type: string
+#      bridge_name:
+#        type: string
+#      table:
+#        type: string
+#      priority:
+#        type: string
+#      flows:
+#        default: []
+#    interfaces:
+#      cloudify.interfaces.lifecycle:
+#        create:
+#          inputs:
+#            template_file:
+#              default: templates/ovs_flows_create.yaml
+#            params:
+#              default:
+#                api_version: { get_property: [SELF, api_version] }
+#                container_name: { get_property: [SELF, container_name] }
+#                bridge_name: { get_property: [SELF, bridge_name] }
+#                table: { get_property: [SELF, table] }
+#                priority: { get_property: [SELF, priority] }
+#                flows: { get_property: [SELF, flows] }
+#        delete:
+#          inputs:
+#            template_file:
+#              default: templates/ovs_flows_delete.yaml
+#            params:
+#              default:
+#                api_version: { get_property: [SELF, api_version] }
+#                container_name: { get_property: [SELF, container_name] }
+#                bridge_name: { get_property: [SELF, bridge_name] }

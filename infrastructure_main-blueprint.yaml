@@ -1,0 +1,74 @@
+tosca_definitions_version: cloudify_dsl_1_3
+
+imports:
+  - http://www.getcloudify.org/spec/cloudify/4.4/types.yaml
+  - plugin:cloudify-utilities-plugin
+  - imports/types.yaml
+
+inputs:
+  docker_api_ip:
+    type: string
+
+  docker_api_port:
+    type: string
+
+  docker_api_version:
+    type: string
+
+  host_container_name:
+    type: string
+
+  host_container_image:
+    type: string
+
+  ovs_container_name:
+    type: string
+
+  ovs_container_image:
+    type: string
+
+  server_container_name:
+    type: string
+
+  server_container_image:
+    type: string
+
+node_templates:
+  host_container:
+    type: cloudify.nodes.docker.Container
+    properties:
+      hosts:
+        - { get_input: docker_api_ip }
+      port: { get_input: docker_api_port }
+      ssl: false
+      verify: false
+      api_version: { get_input: docker_api_version }
+      name: { get_input: host_container_name }
+      image: { get_input: host_container_image }
+      command: ['/bin/bash']
+
+  ovs_container:
+    type: cloudify.nodes.docker.Container
+    properties:
+      hosts:
+        - { get_input: docker_api_ip }
+      port: { get_input: docker_api_port }
+      ssl: false
+      verify: false
+      api_version: { get_input: docker_api_version }
+      name: { get_input: ovs_container_name }
+      image: { get_input: ovs_container_image }
+      command: ~
+
+  server_container:
+    type: cloudify.nodes.docker.Container
+    properties:
+      hosts:
+        - { get_input: docker_api_ip }
+      port: { get_input: docker_api_port }
+      ssl: false
+      verify: false
+      api_version: { get_input: docker_api_version }
+      name: { get_input: server_container_name }
+      image: { get_input: server_container_image }
+      command: ['/bin/bash']

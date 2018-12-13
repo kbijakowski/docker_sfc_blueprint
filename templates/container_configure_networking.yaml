@@ -1,0 +1,14 @@
+# Input parameters:
+# - name
+# - image
+
+rest_calls:
+  - path: ''
+    method: 'POST'
+    headers:
+      Content-type: 'application/json'
+    payload:
+    response_format: json
+    response_translation:
+      data: [data]
+    response_expectation:

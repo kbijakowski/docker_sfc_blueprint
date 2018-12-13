@@ -1,0 +1,12 @@
+# Input parameters:
+# - api_version
+# - name
+
+rest_calls:
+  - path: '/v{{ api_version }}/containers/{{ name }}'
+    method: 'DELETE'
+    headers:
+      Content-type: 'application/json'
+    payload:
+    response_format: raw
+
