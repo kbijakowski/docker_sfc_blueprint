@@ -1,13 +1,12 @@
 # Input parameters:
+# - api_version
 # - name
 
 rest_calls:
-  - path: ''
-    method: 'POST'
+  - path:  '/v{{ api_version }}/networks/{{ name }}'
+    method: 'DELETE'
     headers:
       Content-type: 'application/json'
     payload:
-    response_format: json
-    response_translation:
-      data: [data]
-    response_expectation:
+    response_format: raw
+

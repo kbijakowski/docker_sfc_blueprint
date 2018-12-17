@@ -1,14 +1,27 @@
 # Input parameters:
+# - api_version
 # - name
 # - cidr
 
 rest_calls:
-  - path: ''
+  - path: '/v{{ api_version }}/networks/create'
     method: 'POST'
     headers:
       Content-type: 'application/json'
     payload:
+      Attachable: true
+      CheckDuplicate: true
+      Driver: bridge
+      EnableIPv6: false
+      IPAM:
+        Config:
+        - Subnet: '{{ cidr }}'
+        Driver: default
+        Options: {}
+      Internal: false
+      Labels: {}
+      Name: '{{ name }}'
+      Options: {}
     response_format: json
     response_translation:
-      data: [data]
-    response_expectation:
+      Id: [id]

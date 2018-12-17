@@ -33,6 +33,18 @@ inputs:
   server_container_image:
     type: string
 
+  host_ovs_network_name:
+    type: string
+
+  host_ovs_network_cidr:
+    type: string
+
+  ovs_server_network_name:
+    type: string
+
+  ovs_server_network_cidr:
+    type: string
+
 node_templates:
   host_container:
     type: cloudify.nodes.docker.Container
@@ -72,3 +84,27 @@ node_templates:
       name: { get_input: server_container_name }
       image: { get_input: server_container_image }
       command: ['/bin/bash']
+
+  host_ovs_network:
+    type: cloudify.nodes.docker.Network
+    properties:
+      hosts:
+        - { get_input: docker_api_ip }
+      port: { get_input: docker_api_port }
+      ssl: false
+      verify: false
+      api_version: { get_input: docker_api_version }
+      name: { get_input: host_ovs_network_name }
+      cidr: { get_input: host_ovs_network_cidr }
+
+  ovs_server_network:
+    type: cloudify.nodes.docker.Network
+    properties:
+      hosts:
+        - { get_input: docker_api_ip }
+      port: { get_input: docker_api_port }
+      ssl: false
+      verify: false
+      api_version: { get_input: docker_api_version }
+      name: { get_input: ovs_server_network_name }
+      cidr: { get_input: ovs_server_network_cidr }

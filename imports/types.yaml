@@ -62,33 +62,35 @@ node_types:
                 api_version: { get_property: [SELF, api_version] }
                 name: { get_property: [SELF, name] }
 
-#  cloudify.nodes.docker.Network:
-#    derived_from: cloudify.nodes.docker.Root
-#    properties:
-#      name:
-#        type: string
-#      cidr:
-#        type: string
-#    interfaces:
-#      cloudify.interfaces.lifecycle:
-#        create:
-#          inputs:
-#            template_file:
-#              default: templates/network_create.yaml
-#            params:
-#              default:
-#                api_version: { get_property: [SELF, api_version] }
-#                name: { get_property: [SELF, name] }
-#                cidr: { get_property: [SELF, cidr] }
-#        delete:
-#          inputs:
-#            template_file:
-#              default: templates/network_delete.yaml
-#            params:
-#              default:
-#                api_version: { get_property: [SELF, api_version] }
-#                name: { get_property: [SELF, name] }
-#
+  cloudify.nodes.docker.Network:
+    derived_from: cloudify.nodes.docker.Root
+    properties:
+      name:
+        type: string
+      cidr:
+        type: string
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          implementation: rest.cloudify_rest.tasks.execute
+          inputs:
+            template_file:
+              default: templates/network_create.yaml
+            params:
+              default:
+                api_version: { get_property: [SELF, api_version] }
+                name: { get_property: [SELF, name] }
+                cidr: { get_property: [SELF, cidr] }
+        delete:
+          implementation: rest.cloudify_rest.tasks.execute
+          inputs:
+            template_file:
+              default: templates/network_delete.yaml
+            params:
+              default:
+                api_version: { get_property: [SELF, api_version] }
+                name: { get_property: [SELF, name] }
+
 #  cloudify.nodes.docker.network.Interface:
 #    derived_from: cloudify.nodes.docker.Root
 #    properties:
