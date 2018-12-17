@@ -1,0 +1,106 @@
+# Input parameters:
+# - api_version
+# - name
+# - image
+# - command
+
+rest_calls:
+  - path: '/v{{ api_version }}/containers/create?name={{ name }}'
+    method: 'POST'
+    headers:
+      Content-type: 'application/json'
+    payload:
+      Hostname: '{{ name }}'
+      Domainname: ''
+      User: ''
+      AttachStdin: false
+      AttachStdout: false
+      AttachStderr: false
+      Tty: false
+      OpenStdin: true
+      StdinOnce: false
+      Env: []
+      Cmd: '{% block render_list %}{{ command }}{% endblock %}'
+      Image: '{{ image }}'
+      Volumes: {}
+      WorkingDir: ''
+      Entrypoint: ~
+      OnBuild: ~
+      Labels: {}
+      HostConfig:
+        Binds: ~
+        ContainerIDFile: ''
+        LogConfig:
+          Type: ''
+          Config: {}
+        NetworkMode: default
+        PortBindings: {}
+        RestartPolicy:
+          Name: 'no'
+          MaximumRetryCount: 0
+        AutoRemove: false
+        VolumeDriver: ''
+        VolumesFrom: ~
+        CapAdd:
+        - NET_ADMIN
+        CapDrop: ~
+        Dns: []
+        DnsOptions: []
+        DnsSearch: []
+        ExtraHosts: ~
+        GroupAdd: ~
+        IpcMode: ''
+        Cgroup: ''
+        Links: ~
+        OomScoreAdj: 0
+        PidMode: ''
+        Privileged: false
+        PublishAllPorts: false
+        ReadonlyRootfs: false
+        SecurityOpt: ~
+        UTSMode: ''
+        UsernsMode: ''
+        ShmSize: 0
+        ConsoleSize:
+        - 0
+        - 0
+        Isolation: ''
+        CpuShares: 0
+        Memory: 0
+        NanoCpus: 0
+        CgroupParent: ''
+        BlkioWeight: 0
+        BlkioWeightDevice: ~
+        BlkioDeviceReadBps: ~
+        BlkioDeviceWriteBps: ~
+        BlkioDeviceReadIOps: ~
+        BlkioDeviceWriteIOps: ~
+        CpuPeriod: 0
+        CpuQuota: 0
+        CpuRealtimePeriod: 0
+        CpuRealtimeRuntime: 0
+        CpusetCpus: ''
+        CpusetMems: ''
+        Devices: []
+        DiskQuota: 0
+        KernelMemory: 0
+        MemoryReservation: 0
+        MemorySwap: 0
+        MemorySwappiness: -1
+        OomKillDisable: false
+        PidsLimit: 0
+        Ulimits: ~
+        CpuCount: 0
+        CpuPercent: 0
+        IOMaximumIOps: 0
+        IOMaximumBandwidth: 0
+      NetworkingConfig:
+        EndpointsConfig: {}
+    response_format: json
+    response_translation:
+      Id: [id]
+  - path: '/v{{ api_version }}/containers/{{ name }}/start'
+    method: 'POST'
+    headers:
+      Content-type: 'application/json'
+    response_format: raw

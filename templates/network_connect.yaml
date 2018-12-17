@@ -1,7 +1,7 @@
 # Input parameters:
 # - api_version
 # - network_name
-# - container_name
+# - container_id
 
 rest_calls:
   - path: '/v{{ api_version }}/networks/{{ network_name }}/connect'
@@ -9,7 +9,7 @@ rest_calls:
     headers:
       Content-type: 'application/json'
     payload:
-      Container: '{{ container_name }}'
+      Container: '{{ container_id }}'
       EndpointConfig:
         Aliases: []
         EndpointID: ''

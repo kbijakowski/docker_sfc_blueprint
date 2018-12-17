@@ -9,6 +9,6 @@ rest_calls:
     headers:
       Content-type: 'application/json'
     payload:
-      Container: '{{ container_name }}'
+      Container: '{{ container_id }}'
       Force: false
     response_format: raw
