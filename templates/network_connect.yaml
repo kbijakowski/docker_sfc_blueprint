@@ -1,14 +1,26 @@
 # Input parameters:
+# - api_version
 # - network_name
 # - container_name
 
 rest_calls:
-  - path: ''
+  - path: '/v{{ api_version }}/networks/{{ network_name }}/connect'
     method: 'POST'
     headers:
       Content-type: 'application/json'
     payload:
-    response_format: json
-    response_translation:
-      data: [data]
-    response_expectation:
+      Container: '{{ container_name }}'
+      EndpointConfig:
+        Aliases: []
+        EndpointID: ''
+        Gateway: ''
+        GlobalIPv6Address: ''
+        GlobalIPv6PrefixLen: 0
+        IPAMConfig: {}
+        IPAddress: ''
+        IPPrefixLen: 0
+        IPv6Gateway: ''
+        Links:
+        MacAddress: ''
+        NetworkID: ''
+    response_format: raw

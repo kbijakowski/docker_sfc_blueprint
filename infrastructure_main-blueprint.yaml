@@ -108,3 +108,71 @@ node_templates:
       api_version: { get_input: docker_api_version }
       name: { get_input: ovs_server_network_name }
       cidr: { get_input: ovs_server_network_cidr }
+
+  host_to_ovs_interface:
+    type: cloudify.nodes.docker.network.Interface
+    properties:
+      hosts:
+        - { get_input: docker_api_ip }
+      port: { get_input: docker_api_port }
+      ssl: false
+      verify: false
+      api_version: { get_input: docker_api_version }
+      network_name: { get_property: [host_ovs_network, name] }
+      container_name: { get_property: [host_container, name] }
+    relationships:
+      - type: cloudify.relationships.connected_to
+        target: host_container
+      - type: cloudify.relationships.connected_to
+        target: host_ovs_network
+
+  ovs_to_host_interface:
+    type: cloudify.nodes.docker.network.Interface
+    properties:
+      hosts:
+        - { get_input: docker_api_ip }
+      port: { get_input: docker_api_port }
+      ssl: false
+      verify: false
+      api_version: { get_input: docker_api_version }
+      network_name: { get_property: [host_ovs_network, name] }
+      container_name: { get_property: [ovs_container, name] }
+    relationships:
+      - type: cloudify.relationships.connected_to
+        target: ovs_container
+      - type: cloudify.relationships.connected_to
+        target: host_ovs_network
+
+  server_to_ovs_interface:
+    type: cloudify.nodes.docker.network.Interface
+    properties:
+      hosts:
+        - { get_input: docker_api_ip }
+      port: { get_input: docker_api_port }
+      ssl: false
+      verify: false
+      api_version: { get_input: docker_api_version }
+      network_name: { get_property: [ovs_server_network, name] }
+      container_name: { get_property: [server_container, name] }
+    relationships:
+      - type: cloudify.relationships.connected_to
+        target: server_container
+      - type: cloudify.relationships.connected_to
+        target: ovs_server_network
+
+  ovs_to_server_interface:
+    type: cloudify.nodes.docker.network.Interface
+    properties:
+      hosts:
+        - { get_input: docker_api_ip }
+      port: { get_input: docker_api_port }
+      ssl: false
+      verify: false
+      api_version: { get_input: docker_api_version }
+      network_name: { get_property: [ovs_server_network, name] }
+      container_name: { get_property: [ovs_container, name] }
+    relationships:
+      - type: cloudify.relationships.connected_to
+        target: ovs_container
+      - type: cloudify.relationships.connected_to
+        target: ovs_server_network

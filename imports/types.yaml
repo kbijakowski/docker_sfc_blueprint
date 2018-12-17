@@ -91,25 +91,27 @@ node_types:
                 api_version: { get_property: [SELF, api_version] }
                 name: { get_property: [SELF, name] }
 
-#  cloudify.nodes.docker.network.Interface:
-#    derived_from: cloudify.nodes.docker.Root
-#    properties:
-#      container_name:
-#        type: string
-#      network_name:
-#        type: string
-#    interfaces:
-#      cloudify.interfaces.lifecycle:
-#        create:
-#          inputs:
-#            template_file:
-#              default: templates/network_connect.yaml
-#            params:
-#              default:
-#                api_version: { get_property: [SELF, api_version] }
-#                container_name: { get_property: [SELF, container_name] }
-#                network_name: { get_property: [SELF, network_name] }
+  cloudify.nodes.docker.network.Interface:
+    derived_from: cloudify.nodes.docker.Root
+    properties:
+      container_name:
+        type: string
+      network_name:
+        type: string
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          implementation: rest.cloudify_rest.tasks.execute
+          inputs:
+            template_file:
+              default: templates/network_connect.yaml
+            params:
+              default:
+                api_version: { get_property: [SELF, api_version] }
+                container_name: { get_property: [SELF, container_name] }
+                network_name: { get_property: [SELF, network_name] }
 #        configure:
+#          implementation: rest.cloudify_rest.tasks.execute
 #          inputs:
 #            template_file:
 #              default: templates/network_inspect.yaml
@@ -118,16 +120,17 @@ node_types:
 #                api_version: { get_property: [SELF, api_version] }
 #                container_name: { get_property: [SELF, container_name] }
 #                network_name: { get_property: [SELF, network_name] }
-#        # start - container_get_physical_interface.yaml ?
-#        delete:
-#          inputs:
-#            template_file:
-#              default: templates/network_disconnect.yaml
-#            params:
-#              default:
-#                api_version: { get_property: [SELF, api_version] }
-#                container_name: { get_property: [SELF, container_name] }
-#                network_name: { get_property: [SELF, network_name] }
+        # start - container_get_physical_interface.yaml ?
+        delete:
+          implementation: rest.cloudify_rest.tasks.execute
+          inputs:
+            template_file:
+              default: templates/network_disconnect.yaml
+            params:
+              default:
+                api_version: { get_property: [SELF, api_version] }
+                container_name: { get_property: [SELF, container_name] }
+                network_name: { get_property: [SELF, network_name] }
 #    # runtime properties:
 #    # - mac
 #    # - ip
