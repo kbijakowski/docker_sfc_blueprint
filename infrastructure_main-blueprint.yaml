@@ -55,8 +55,6 @@ node_templates:
       hosts:
         - { get_input: docker_api_ip }
       port: { get_input: docker_api_port }
-      ssl: false
-      verify: false
       api_version: { get_input: docker_api_version }
       name: { get_input: host_container_name }
       image: { get_input: host_container_image }
@@ -68,8 +66,6 @@ node_templates:
       hosts:
         - { get_input: docker_api_ip }
       port: { get_input: docker_api_port }
-      ssl: false
-      verify: false
       api_version: { get_input: docker_api_version }
       name: { get_input: ovs_container_name }
       image: { get_input: ovs_container_image }
@@ -81,8 +77,6 @@ node_templates:
       hosts:
         - { get_input: docker_api_ip }
       port: { get_input: docker_api_port }
-      ssl: false
-      verify: false
       api_version: { get_input: docker_api_version }
       name: { get_input: server_container_name }
       image: { get_input: server_container_image }
@@ -94,8 +88,6 @@ node_templates:
       hosts:
         - { get_input: docker_api_ip }
       port: { get_input: docker_api_port }
-      ssl: false
-      verify: false
       api_version: { get_input: docker_api_version }
       name: { get_input: host_ovs_network_name }
       cidr: { get_input: host_ovs_network_cidr }
@@ -106,8 +98,6 @@ node_templates:
       hosts:
         - { get_input: docker_api_ip }
       port: { get_input: docker_api_port }
-      ssl: false
-      verify: false
       api_version: { get_input: docker_api_version }
       name: { get_input: ovs_server_network_name }
       cidr: { get_input: ovs_server_network_cidr }
@@ -118,8 +108,6 @@ node_templates:
       hosts:
         - { get_input: docker_api_ip }
       port: { get_input: docker_api_port }
-      ssl: false
-      verify: false
       api_version: { get_input: docker_api_version }
       network_name: { get_property: [host_ovs_network, name] }
       container_id: { get_attribute: [host_container, result_properties, id] }
@@ -135,8 +123,6 @@ node_templates:
       hosts:
         - { get_input: docker_api_ip }
       port: { get_input: docker_api_port }
-      ssl: false
-      verify: false
       api_version: { get_input: docker_api_version }
       network_name: { get_property: [host_ovs_network, name] }
       container_id: { get_attribute: [ovs_container, result_properties, id] }
@@ -152,8 +138,6 @@ node_templates:
       hosts:
         - { get_input: docker_api_ip }
       port: { get_input: docker_api_port }
-      ssl: false
-      verify: false
       api_version: { get_input: docker_api_version }
       network_name: { get_property: [ovs_server_network, name] }
       container_id: { get_attribute: [server_container, result_properties, id] }
@@ -169,8 +153,6 @@ node_templates:
       hosts:
         - { get_input: docker_api_ip }
       port: { get_input: docker_api_port }
-      ssl: false
-      verify: false
       api_version: { get_input: docker_api_version }
       network_name: { get_property: [ovs_server_network, name] }
       container_id: { get_attribute: [ovs_container, result_properties, id] }
@@ -186,8 +168,6 @@ node_templates:
       hosts:
         - { get_input: docker_api_ip }
       port: { get_input: docker_api_port }
-      ssl: false
-      verify: false
       api_version: { get_input: docker_api_version }
       container_name: { get_property: [host_container, name] }
       subnet_cidr: { get_property: [ovs_server_network, cidr] }
@@ -207,8 +187,6 @@ node_templates:
       hosts:
         - { get_input: docker_api_ip }
       port: { get_input: docker_api_port }
-      ssl: false
-      verify: false
       api_version: { get_input: docker_api_version }
       container_name: { get_property: [server_container, name] }
       subnet_cidr: { get_property: [host_ovs_network, cidr] }
@@ -228,11 +206,41 @@ node_templates:
       hosts:
         - { get_input: docker_api_ip }
       port: { get_input: docker_api_port }
-      ssl: false
-      verify: false
       api_version: { get_input: docker_api_version }
       name: { get_input: ovs_main_bridge_name }
       container_name: { get_property: [ovs_container, name] }
     relationships:
-    - type: cloudify.relationships.contained_in
-      target: ovs_container
+      - type: cloudify.relationships.contained_in
+        target: ovs_container
+
+  ovs_to_host_openflow_interface:
+    type: cloudify.nodes.docker.ovs.bridge.Interface
+    properties:
+      hosts:
+        - { get_input: docker_api_ip }
+      port: { get_input: docker_api_port }
+      api_version: { get_input: docker_api_version }
+      name: { get_attribute: [ovs_to_host_interface, physical_interface] }
+      container_name: { get_property: [ovs_container, name] }
+      bridge_name: { get_property: [ovs_main_bridge, name] }
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: ovs_to_host_interface
+      - type: cloudify.relationships.connected_to
+        target: ovs_main_bridge
+
+  ovs_to_server_openflow_interface:
+    type: cloudify.nodes.docker.ovs.bridge.Interface
+    properties:
+      hosts:
+        - { get_input: docker_api_ip }
+      port: { get_input: docker_api_port }
+      api_version: { get_input: docker_api_version }
+      name: { get_attribute: [ovs_to_server_interface, physical_interface] }
+      container_name: { get_property: [ovs_container, name] }
+      bridge_name: { get_property: [ovs_main_bridge, name] }
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: ovs_to_server_interface
+      - type: cloudify.relationships.connected_to
+        target: ovs_main_bridge

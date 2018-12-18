@@ -208,48 +208,64 @@ node_types:
                   - 'del-br'
                   -  { get_property: [SELF, name] }
 
-#  cloudify.nodes.docker.ovs.bridge.Interface:
-#    derived_from: cloudify.nodes.docker.Root
-#    properties:
-#      name:
-#        type: string
-#      container_name:
-#        type: string
-#      bridge_name:
-#        type: string
-#    interfaces:
-#      cloudify.interfaces.lifecycle:
-#        create:
-#          inputs:
-#            template_file:
-#              default: templates/ovs_interface_create.yaml
-#            params:
-#              default:
-#                api_version: { get_property: [SELF, api_version] }
-#                name: { get_property: [SELF, name] }
-#                container_name: { get_property: [SELF, container_name] }
-#                bridge_name: { get_property: [SELF, bridge_name] }
-#        start:
-#          inputs:
-#            template_file:
-#              default: templates/ovs_interface_get_openflow_id.yaml
-#            params:
-#              default:
-#                api_version: { get_property: [SELF, api_version] }
-#                name: { get_property: [SELF, name] }
-#                container_name: { get_property: [SELF, container_name] }
-#                bridge_name: { get_property: [SELF, bridge_name] }
-#        delete:
-#          inputs:
-#            template_file:
-#              default: templates/ovs_interface_delete.yaml
-#            params:
-#              default:
-#                api_version: { get_property: [SELF, api_version] }
-#                name: { get_property: [SELF, name] }
-#                container_name: { get_property: [SELF, container_name] }
-#                bridge_name: { get_property: [SELF, bridge_name] }
-#
+  cloudify.nodes.docker.ovs.bridge.Interface:
+    derived_from: cloudify.nodes.docker.Root
+    properties:
+      name:
+        type: string
+      container_name:
+        type: string
+      bridge_name:
+        type: string
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          implementation: rest.cloudify_rest.tasks.execute
+          inputs:
+            template_file:
+              default: templates/container_exec.yaml
+            params:
+              default:
+                api_version: { get_property: [SELF, api_version] }
+                container_name: { get_property: [SELF, container_name] }
+                command:
+                  - 'ovs-vsctl'
+                  - 'add-port'
+                  - { get_property: [SELF, bridge_name] }
+                  - { get_property: [SELF, name] }
+        configure:
+          implementation: rest.cloudify_rest.tasks.execute
+          inputs:
+            template_file:
+               default: templates/container_exec.yaml
+            params:
+              default:
+                api_version: { get_property: [SELF, api_version] }
+                container_name: { get_property: [SELF, container_name] }
+                command:
+                  - 'ovs-vsctl'
+                  - 'get'
+                  - 'Interface'
+                  - { get_property: [SELF, name] }
+                  - 'ofport'
+        start:
+          implementation: scripts/process_openflow_interface.py
+          executor: central_deployment_agent
+        delete:
+          implementation: rest.cloudify_rest.tasks.execute
+          inputs:
+            template_file:
+              default: templates/container_exec.yaml
+            params:
+              default:
+                api_version: { get_property: [SELF, api_version] }
+                container_name: { get_property: [SELF, container_name] }
+                command:
+                  - 'ovs-vsctl'
+                  - 'del-port'
+                  - { get_property: [SELF, bridge_name] }
+                  - { get_property: [SELF, name] }
+
 #  cloudify.nodes.docker.ovs.bridge.PatchInterface:
 #    derived_from: cloudify.nodes.docker.Root
 #    properties:
