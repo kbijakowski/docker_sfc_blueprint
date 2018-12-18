@@ -45,6 +45,9 @@ inputs:
   ovs_server_network_cidr:
     type: string
 
+  ovs_main_bridge_name:
+    type: string
+
 node_templates:
   host_container:
     type: cloudify.nodes.docker.Container
@@ -218,3 +221,18 @@ node_templates:
         target: ovs_to_server_interface
       - type: cloudify.relationships.depends_on
         target: host_ovs_network
+
+  ovs_main_bridge:
+    type: cloudify.nodes.docker.ovs.Bridge
+    properties:
+      hosts:
+        - { get_input: docker_api_ip }
+      port: { get_input: docker_api_port }
+      ssl: false
+      verify: false
+      api_version: { get_input: docker_api_version }
+      name: { get_input: ovs_main_bridge_name }
+      container_name: { get_property: [ovs_container, name] }
+    relationships:
+    - type: cloudify.relationships.contained_in
+      target: ovs_container
