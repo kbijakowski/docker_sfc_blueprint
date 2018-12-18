@@ -10,4 +10,4 @@ rest_calls:
     response_format: json
     response_translation:
       data: [data]
-    response_expectation:
+    response_expectation: {}

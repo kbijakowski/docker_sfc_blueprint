@@ -16,3 +16,29 @@ rest_calls:
           IPv4Address: [ip_address]
           MacAddress: [mac_address]
           EndpointID: [id]
+  - path: '/v{{ api_version }}/containers/{{ container_id }}/exec'
+    method: 'POST'
+    headers:
+      Content-type: 'application/json'
+    payload:
+      AttachStderr: true
+      AttachStdin: false
+      AttachStdout: true
+      Cmd: ['ip', 'addr']
+      Detach: false
+      DetachKeys: ''
+      Env:
+      Privileged: false
+      Tty: false
+      User: ''
+    response_format: json
+    response_translation:
+      Id: [exec_id]
+  - path: '/v{{ api_version }}/exec/{{ exec_id }}/start'
+    method: 'POST'
+    headers:
+      Content-type: 'application/json'
+    payload:
+      Detach: false
+      Tty: false
+    response_format: text

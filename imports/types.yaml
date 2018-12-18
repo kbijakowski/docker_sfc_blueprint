@@ -111,7 +111,12 @@ node_types:
                 api_version: { get_property: [SELF, api_version] }
                 container_id: { get_property: [SELF, container_id] }
                 network_name: { get_property: [SELF, network_name] }
-        # start - container_get_physical_interface.yaml ?
+        start:
+          implementation: scripts/get_physical_interface.py
+          executor: central_deployment_agent
+          inputs:
+            ip:
+              default: { get_attribute: [SELF, result_properties, ip_address] }
         delete:
           implementation: rest.cloudify_rest.tasks.execute
           inputs:
@@ -122,9 +127,7 @@ node_types:
                 api_version: { get_property: [SELF, api_version] }
                 container_id: { get_property: [SELF, container_id] }
                 network_name: { get_property: [SELF, network_name] }
-#    # runtime properties:
-#    # - mac
-#    # - ip
+
 #
 #  cloudify.nodes.docker.container.NetworkingConfig:
 #    derived_from: cloudify.nodes.docker.Root

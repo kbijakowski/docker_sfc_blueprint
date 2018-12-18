@@ -29,4 +29,4 @@ rest_calls:
     payload:
       Detach: false
       Tty: false
-    response_format: raw
+    response_format: text
