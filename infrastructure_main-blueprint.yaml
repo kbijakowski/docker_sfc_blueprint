@@ -176,3 +176,45 @@ node_templates:
         target: ovs_container
       - type: cloudify.relationships.connected_to
         target: ovs_server_network
+
+  host_networking_config:
+    type: cloudify.nodes.docker.container.NetworkingConfig
+    properties:
+      hosts:
+        - { get_input: docker_api_ip }
+      port: { get_input: docker_api_port }
+      ssl: false
+      verify: false
+      api_version: { get_input: docker_api_version }
+      container_name: { get_property: [host_container, name] }
+      subnet_cidr: { get_property: [ovs_server_network, cidr] }
+      next_hop_ip: { get_attribute: [ovs_to_host_interface, ip_address] }
+      mac: { get_attribute: [ovs_to_host_interface, mac_address] }
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: host_container
+      - type: cloudify.relationships.depends_on
+        target: ovs_to_host_interface
+      - type: cloudify.relationships.depends_on
+        target: ovs_server_network
+
+  server_networking_config:
+    type: cloudify.nodes.docker.container.NetworkingConfig
+    properties:
+      hosts:
+        - { get_input: docker_api_ip }
+      port: { get_input: docker_api_port }
+      ssl: false
+      verify: false
+      api_version: { get_input: docker_api_version }
+      container_name: { get_property: [server_container, name] }
+      subnet_cidr: { get_property: [host_ovs_network, cidr] }
+      next_hop_ip: { get_attribute: [ovs_to_server_interface, ip_address] }
+      mac: { get_attribute: [ovs_to_server_interface, mac_address] }
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: server_container
+      - type: cloudify.relationships.depends_on
+        target: ovs_to_server_interface
+      - type: cloudify.relationships.depends_on
+        target: host_ovs_network

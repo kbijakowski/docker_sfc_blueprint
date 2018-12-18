@@ -13,7 +13,7 @@ rest_calls:
     response_translation:
       Containers:
         '{{ container_id }}':
-          IPv4Address: [ip_address]
+          IPv4Address: [ip_address_with_mask]
           MacAddress: [mac_address]
           EndpointID: [id]
   - path: '/v{{ api_version }}/containers/{{ container_id }}/exec'

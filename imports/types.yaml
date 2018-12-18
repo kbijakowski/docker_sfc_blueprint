@@ -112,11 +112,11 @@ node_types:
                 container_id: { get_property: [SELF, container_id] }
                 network_name: { get_property: [SELF, network_name] }
         start:
-          implementation: scripts/get_physical_interface.py
+          implementation: scripts/process_docker_network_interface.py
           executor: central_deployment_agent
           inputs:
             ip:
-              default: { get_attribute: [SELF, result_properties, ip_address] }
+              default: { get_attribute: [SELF, result_properties, ip_address_with_mask] }
         delete:
           implementation: rest.cloudify_rest.tasks.execute
           inputs:
@@ -128,33 +128,51 @@ node_types:
                 container_id: { get_property: [SELF, container_id] }
                 network_name: { get_property: [SELF, network_name] }
 
-#
-#  cloudify.nodes.docker.container.NetworkingConfig:
-#    derived_from: cloudify.nodes.docker.Root
-#    properties:
-#      container_name:
-#        type: string
-#      subnet_cidr:
-#        type: string
-#      next_hop_ip:
-#        type: string
-#      mac:
-#        type: string
-#    interfaces:
-#      cloudify.interfaces.lifecycle:
-#        create:
-#          inputs:
-#            template_file:
-#              default: templates/container_configure_networking.yaml
-#            params:
-#              default:
-#                api_version: { get_property: [SELF, api_version] }
-#                container_name: { get_property: [SELF, container_name] }
-#                subnet_cidr: { get_property: [SELF, subnet_cidr] }
-#                next_hop_ip: { get_property: [SELF, next_hop_ip] }
-#                mac: { get_property: [SELF, mac] }
-#
-#
+  cloudify.nodes.docker.container.NetworkingConfig:
+    derived_from: cloudify.nodes.docker.Root
+    properties:
+      container_name:
+        type: string
+      subnet_cidr:
+        type: string
+      next_hop_ip:
+        type: string
+      mac:
+        type: string
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          implementation: rest.cloudify_rest.tasks.execute
+          inputs:
+            template_file:
+              default: templates/container_exec.yaml
+            params:
+              default:
+                api_version: { get_property: [SELF, api_version] }
+                container_name: { get_property: [SELF, container_name] }
+                command:
+                  - 'ip'
+                  - 'route'
+                  - 'add'
+                  - { get_property: [SELF, subnet_cidr] }
+                  - 'via'
+                  - { get_property: [SELF, next_hop_ip] }
+        configure:
+          implementation: rest.cloudify_rest.tasks.execute
+          inputs:
+            template_file:
+              default: templates/container_exec.yaml
+            params:
+              default:
+                api_version: { get_property: [SELF, api_version] }
+                container_name: { get_property: [SELF, container_name] }
+                command:
+                  - 'arp'
+                  - '-s'
+                  - { get_property: [SELF, next_hop_ip] }
+                  - { get_property: [SELF, mac] }
+
+##
 #  cloudify.nodes.docker.ovs.Bridge:
 #    derived_from: cloudify.nodes.docker.Root
 #    properties:
