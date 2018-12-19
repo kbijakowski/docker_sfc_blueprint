@@ -1,1 +1,94 @@
- 
+tosca_definitions_version: cloudify_dsl_1_3
+
+imports:
+  - http://www.getcloudify.org/spec/cloudify/4.4/types.yaml
+  - plugin:cloudify-utilities-plugin
+  - imports/types.yaml
+
+inputs:
+  docker_api_ip:
+    type: string
+    default: '172.17.0.1'
+
+  docker_api_port:
+    type: string
+    default: '2376'
+
+  docker_api_version:
+    type: string
+    default: '1.26'
+
+  ovs_container_name:
+    type: string
+    default: 'cfy_lab_ovs'
+
+  ovs_main_bridge_name:
+    type: string
+    default: 'br0'
+
+  ovs_endpoint_bridge_name:
+    type: string
+    default: 'br1'
+
+  ovs_endpoint_bridge_from_main_bridge_interface_name:
+    type: string
+    default: 'patch01'
+
+  ovs_endpoint_bridge_to_main_bridge_interface_name:
+    type: string
+    default: 'patch10'
+
+node_templates:
+  ovs_endpoint_bridge:
+    type: cloudify.nodes.docker.ovs.Bridge
+    properties:
+      hosts:
+        - { get_input: docker_api_ip }
+      port: { get_input: docker_api_port }
+      api_version: { get_input: docker_api_version }
+      name: { get_input: ovs_endpoint_bridge_name }
+      container_name: { get_input: ovs_container_name }
+
+  ovs_endpoint_bridge_from_main_bridge_openflow_interface:
+    type: cloudify.nodes.docker.ovs.bridge.PatchInterface
+    properties:
+      hosts:
+        - { get_input: docker_api_ip }
+      port: { get_input: docker_api_port }
+      api_version: { get_input: docker_api_version }
+      container_name: { get_input: ovs_container_name }
+      bridge_name: { get_input: ovs_endpoint_bridge_name }
+      name:
+        concat:
+          - { get_input: ovs_endpoint_bridge_from_main_bridge_interface_name }
+          - '_endpoint'
+      peer_bridge_name: { get_input: ovs_main_bridge_name }
+      peer_interface_name:
+        concat:
+          - { get_input: ovs_endpoint_bridge_from_main_bridge_interface_name }
+          - '_main'
+    relationships:
+      - type: cloudify.relationships.connected_to
+        target: ovs_endpoint_bridge
+
+  ovs_endpoint_bridge_to_main_bridge_openflow_interface:
+    type: cloudify.nodes.docker.ovs.bridge.PatchInterface
+    properties:
+      hosts:
+        - { get_input: docker_api_ip }
+      port: { get_input: docker_api_port }
+      api_version: { get_input: docker_api_version }
+      container_name: { get_input: ovs_container_name }
+      bridge_name: { get_input: ovs_endpoint_bridge_name }
+      name:
+        concat:
+          - { get_input: ovs_endpoint_bridge_to_main_bridge_interface_name }
+          - '_endpoint'
+      peer_bridge_name: { get_input: ovs_main_bridge_name }
+      peer_interface_name:
+        concat:
+          - { get_input: ovs_endpoint_bridge_to_main_bridge_interface_name }
+          - '_main'
+    relationships:
+      - type: cloudify.relationships.connected_to
+        target: ovs_endpoint_bridge
