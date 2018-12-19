@@ -312,39 +312,44 @@ node_types:
 #                bridge_name: { get_property: [SELF, bridge_name] }
 #                peer_interface_name: { get_property: [SELF, peer_interface_name] }
 #
-#  cloudify.nodes.docker.ovs.bridge.Flows:
-#    derived_from: cloudify.nodes.docker.Root
-#    properties:
-#      container_name:
-#        type: string
-#      bridge_name:
-#        type: string
-#      table:
-#        type: string
-#      priority:
-#        type: string
-#      flows:
-#        default: []
-#    interfaces:
-#      cloudify.interfaces.lifecycle:
-#        create:
-#          inputs:
-#            template_file:
-#              default: templates/ovs_flows_create.yaml
-#            params:
-#              default:
-#                api_version: { get_property: [SELF, api_version] }
-#                container_name: { get_property: [SELF, container_name] }
-#                bridge_name: { get_property: [SELF, bridge_name] }
-#                table: { get_property: [SELF, table] }
-#                priority: { get_property: [SELF, priority] }
-#                flows: { get_property: [SELF, flows] }
-#        delete:
-#          inputs:
-#            template_file:
-#              default: templates/ovs_flows_delete.yaml
-#            params:
-#              default:
-#                api_version: { get_property: [SELF, api_version] }
-#                container_name: { get_property: [SELF, container_name] }
-#                bridge_name: { get_property: [SELF, bridge_name] }
+  cloudify.nodes.docker.ovs.bridge.PermanentFlow:
+    derived_from: cloudify.nodes.docker.Root
+    properties:
+      container_name:
+        type: string
+      bridge_name:
+        type: string
+      table:
+        type: string
+      priority:
+        type: string
+      in_port:
+        type: string
+      out_port:
+        type: string
+      actions:
+        type: string
+        default: ''
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          implementation: rest.cloudify_rest.tasks.execute
+          inputs:
+            template_file:
+              default: templates/container_exec.yaml
+            params:
+              default:
+                api_version: { get_property: [SELF, api_version] }
+                container_name: { get_property: [SELF, container_name] }
+                command:
+                  - 'ovs-ofctl'
+                  - 'add-flow'
+                  - { get_property: [SELF, bridge_name] }
+                  - concat:
+                    - { concat: ['table=', { get_property: [SELF, table] }] }
+                    - ', '
+                    - { concat: ['priority=', { get_property: [SELF, priority] }] }
+                    - ', '
+                    - { concat: ['in_port=', { get_property: [SELF, in_port] }] }
+                    - ', '
+                    - { concat: ['actions=', { get_property: [SELF, actions] }, 'output:', { get_property: [SELF, out_port] }] }
