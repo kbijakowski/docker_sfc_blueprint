@@ -314,3 +314,12 @@ node_templates:
         target: host_to_ovs_interface
       - type: cloudify.relationships.depends_on
         target: ovs_to_host_interface
+
+outputs:
+  ping_check_command:
+    value:
+      concat:
+        - 'docker exec '
+        - { get_property: [host_container, name] }
+        - ' ping '
+        - { get_attribute: [server_to_ovs_interface, ip_address] }
