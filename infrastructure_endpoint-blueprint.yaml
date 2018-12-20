@@ -142,3 +142,10 @@ node_templates:
         target: ovs_endpoint_bridge_from_main_bridge_openflow_interface
       - type: cloudify.relationships.depends_on
         target: ovs_endpoint_bridge_to_main_bridge_openflow_interface
+
+outputs:
+  main_bridge_to_endpoint_bridge_ofport:
+    value: { get_attribute: [ovs_endpoint_bridge_from_main_bridge_openflow_interface, peer_id] }
+
+  main_bridge_from_endpoint_bridge_ofport:
+    value: { get_attribute: [ovs_endpoint_bridge_to_main_bridge_openflow_interface, peer_id] }
