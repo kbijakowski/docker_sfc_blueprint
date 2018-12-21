@@ -1,1 +1,393 @@
- 
+tosca_definitions_version: cloudify_dsl_1_3
+
+imports:
+  - http://www.getcloudify.org/spec/cloudify/4.4/types.yaml
+  - plugin:cloudify-utilities-plugin
+  - imports/types.yaml
+
+inputs:
+  docker_api_ip:
+    type: string
+
+  docker_api_port:
+    type: string
+
+  docker_api_version:
+    type: string
+
+  service_container_name:
+    type: string
+
+  service_container_image:
+    type: string
+
+  ovs_service_network_name:
+    type: string
+
+  ovs_service_network_cidr:
+    type: string
+
+  service_ovs_network_name:
+    type: string
+
+  service_ovs_network_cidr:
+    type: string
+
+  ovs_container_id:
+    type: string
+
+  input_network_subnet_cidr:
+    type: string
+
+  output_network_subnet_cidr:
+    type: string
+
+  ovs_flows_default_table:
+    type: string
+
+  ovs_flows_service_priority:
+    type: string
+
+node_templates:
+  service_container:
+    type: cloudify.nodes.docker.Container
+    properties:
+      hosts:
+        - { get_input: docker_api_ip }
+      port: { get_input: docker_api_port }
+      api_version: { get_input: docker_api_version }
+      name: { get_input: service_container_name }
+      image: { get_input: service_container_image }
+      command: ['/bin/bash']
+
+  ovs_service_network:
+    type: cloudify.nodes.docker.Network
+    properties:
+      hosts:
+        - { get_input: docker_api_ip }
+      port: { get_input: docker_api_port }
+      api_version: { get_input: docker_api_version }
+      name: { get_input: ovs_service_network_name }
+      cidr: { get_input: ovs_service_network_cidr }
+
+  service_ovs_network:
+    type: cloudify.nodes.docker.Network
+    properties:
+      hosts:
+        - { get_input: docker_api_ip }
+      port: { get_input: docker_api_port }
+      api_version: { get_input: docker_api_version }
+      name: { get_input: service_ovs_network_name }
+      cidr: { get_input: service_ovs_network_cidr }
+
+  ovs_to_service_interface:
+    type: cloudify.nodes.docker.network.Interface
+    properties:
+      hosts:
+        - { get_input: docker_api_ip }
+      port: { get_input: docker_api_port }
+      api_version: { get_input: docker_api_version }
+      network_name: { get_property: [ovs_service_network, name] }
+      container_id: { get_input: ovs_container_id }
+    relationships:
+      - type: cloudify.relationships.connected_to
+        target: ovs_service_network
+
+  service_from_ovs_interface:
+    type: cloudify.nodes.docker.network.Interface
+    properties:
+      hosts:
+        - { get_input: docker_api_ip }
+      port: { get_input: docker_api_port }
+      api_version: { get_input: docker_api_version }
+      network_name: { get_property: [ovs_service_network, name] }
+      container_id: { get_attribute: [service_container, result_properties, id] }
+    relationships:
+      - type: cloudify.relationships.connected_to
+        target: service_container
+      - type: cloudify.relationships.connected_to
+        target: ovs_service_network
+
+  service_to_ovs_interface:
+    type: cloudify.nodes.docker.network.Interface
+    properties:
+      hosts:
+        - { get_input: docker_api_ip }
+      port: { get_input: docker_api_port }
+      api_version: { get_input: docker_api_version }
+      network_name: { get_property: [service_ovs_network, name] }
+      container_id: { get_attribute: [service_container, result_properties, id] }
+    relationships:
+      - type: cloudify.relationships.connected_to
+        target: service_container
+      - type: cloudify.relationships.connected_to
+        target: service_ovs_network
+
+  ovs_from_service_interface:
+    type: cloudify.nodes.docker.network.Interface
+    properties:
+      hosts:
+        - { get_input: docker_api_ip }
+      port: { get_input: docker_api_port }
+      api_version: { get_input: docker_api_version }
+      network_name: { get_property: [service_ovs_network, name] }
+      container_id: { get_input: ovs_container_id }
+    relationships:
+      - type: cloudify.relationships.connected_to
+        target: service_ovs_network
+
+  service_in_networking_config:
+    type: cloudify.nodes.docker.container.NetworkingConfig
+    properties:
+      hosts:
+        - { get_input: docker_api_ip }
+      port: { get_input: docker_api_port }
+      api_version: { get_input: docker_api_version }
+      container_name: { get_property: [service_container, name] }
+      subnet_cidr: { get_input: input_network_subnet_cidr }
+      next_hop_ip: { get_attribute: [ovs_to_service_interface, ip_address] }
+      mac: { get_attribute: [ovs_to_service_interface, mac_address] }
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: service_container
+      - type: cloudify.relationships.depends_on
+        target: ovs_to_service_interface
+
+  service_out_networking_config:
+    type: cloudify.nodes.docker.container.NetworkingConfig
+    properties:
+      hosts:
+        - { get_input: docker_api_ip }
+      port: { get_input: docker_api_port }
+      api_version: { get_input: docker_api_version }
+      container_name: { get_property: [service_container, name] }
+      subnet_cidr: { get_input: output_network_subnet_cidr }
+      next_hop_ip: { get_attribute: [ovs_from_service_interface, ip_address] }
+      mac: { get_attribute: [ovs_from_service_interface, mac_address] }
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: service_container
+      - type: cloudify.relationships.depends_on
+        target: ovs_from_service_interface
+
+#  ovs_to_host_openflow_interface:
+#    type: cloudify.nodes.docker.ovs.bridge.Interface
+#    properties:
+#      hosts:
+#        - { get_input: docker_api_ip }
+#      port: { get_input: docker_api_port }
+#      api_version: { get_input: docker_api_version }
+#      name: { get_attribute: [ovs_to_host_interface, physical_interface] }
+#      container_name: { get_property: [ovs_container, name] }
+#      bridge_name: { get_property: [ovs_main_bridge, name] }
+#    relationships:
+#      - type: cloudify.relationships.contained_in
+#        target: ovs_to_host_interface
+#      - type: cloudify.relationships.connected_to
+#        target: ovs_main_bridge
+#
+#  ovs_to_server_openflow_interface:
+#    type: cloudify.nodes.docker.ovs.bridge.Interface
+#    properties:
+#      hosts:
+#        - { get_input: docker_api_ip }
+#      port: { get_input: docker_api_port }
+#      api_version: { get_input: docker_api_version }
+#      name: { get_attribute: [ovs_to_server_interface, physical_interface] }
+#      container_name: { get_property: [ovs_container, name] }
+#      bridge_name: { get_property: [ovs_main_bridge, name] }
+#    relationships:
+#      - type: cloudify.relationships.contained_in
+#        target: ovs_to_server_interface
+#      - type: cloudify.relationships.connected_to
+#        target: ovs_main_bridge
+#
+#  ovs_host_to_endpoint_1_flow:
+#    type: cloudify.nodes.docker.ovs.bridge.PermanentFlow
+#    properties:
+#      hosts:
+#        - { get_input: docker_api_ip }
+#      port: { get_input: docker_api_port }
+#      api_version: { get_input: docker_api_version }
+#      container_name: { get_property: [ovs_container, name] }
+#      bridge_name: { get_property: [ovs_main_bridge, name] }
+#      table: { get_input: ovs_flows_default_table }
+#      priority: { get_input: ovs_flows_default_priority }
+#      in_port: { get_attribute: [ovs_to_host_openflow_interface, id] }
+#      out_port: { get_attribute: [ovs_endpoint_1, deployment, outputs, in_ofport] }
+#    relationships:
+#      - type: cloudify.relationships.contained_in
+#        target: ovs_main_bridge
+#      - type: cloudify.relationships.depends_on
+#        target: ovs_to_host_openflow_interface
+#      - type: cloudify.relationships.depends_on
+#        target: ovs_endpoint_1
+#
+#  ovs_endpoint_1_to_endpoint_2_flow:
+#    type: cloudify.nodes.docker.ovs.bridge.PermanentFlow
+#    properties:
+#      hosts:
+#        - { get_input: docker_api_ip }
+#      port: { get_input: docker_api_port }
+#      api_version: { get_input: docker_api_version }
+#      container_name: { get_property: [ovs_container, name] }
+#      bridge_name: { get_property: [ovs_main_bridge, name] }
+#      table: { get_input: ovs_flows_default_table }
+#      priority: { get_input: ovs_flows_default_priority }
+#      in_port: { get_attribute: [ovs_endpoint_1, deployment, outputs, out_ofport] }
+#      out_port: { get_attribute: [ovs_endpoint_2, deployment, outputs, in_ofport] }
+#    relationships:
+#      - type: cloudify.relationships.contained_in
+#        target: ovs_main_bridge
+#      - type: cloudify.relationships.depends_on
+#        target: ovs_endpoint_1
+#      - type: cloudify.relationships.depends_on
+#        target: ovs_endpoint_2
+#
+#  ovs_endpoint_2_to_endpoint_3_flow:
+#    type: cloudify.nodes.docker.ovs.bridge.PermanentFlow
+#    properties:
+#      hosts:
+#        - { get_input: docker_api_ip }
+#      port: { get_input: docker_api_port }
+#      api_version: { get_input: docker_api_version }
+#      container_name: { get_property: [ovs_container, name] }
+#      bridge_name: { get_property: [ovs_main_bridge, name] }
+#      table: { get_input: ovs_flows_default_table }
+#      priority: { get_input: ovs_flows_default_priority }
+#      in_port: { get_attribute: [ovs_endpoint_2, deployment, outputs, out_ofport] }
+#      out_port: { get_attribute: [ovs_endpoint_3, deployment, outputs, in_ofport] }
+#    relationships:
+#      - type: cloudify.relationships.contained_in
+#        target: ovs_main_bridge
+#      - type: cloudify.relationships.depends_on
+#        target: ovs_endpoint_2
+#      - type: cloudify.relationships.depends_on
+#        target: ovs_endpoint_3
+#
+#  ovs_endpoint_3_to_server_flow:
+#    type: cloudify.nodes.docker.ovs.bridge.PermanentFlow
+#    properties:
+#      hosts:
+#        - { get_input: docker_api_ip }
+#      port: { get_input: docker_api_port }
+#      api_version: { get_input: docker_api_version }
+#      container_name: { get_property: [ovs_container, name] }
+#      bridge_name: { get_property: [ovs_main_bridge, name] }
+#      table: { get_input: ovs_flows_default_table }
+#      priority: { get_input: ovs_flows_default_priority }
+#      in_port: { get_attribute: [ovs_endpoint_3, deployment, outputs, out_ofport] }
+#      out_port: { get_attribute: [ovs_to_server_openflow_interface, id] }
+#      actions:
+#        concat:
+#          - 'mod_dl_src:'
+#          - { get_attribute: [ovs_to_server_interface, mac_address] }
+#          - ',mod_dl_dst:'
+#          - { get_attribute: [server_to_ovs_interface, mac_address] }
+#          - ','
+#    relationships:
+#      - type: cloudify.relationships.contained_in
+#        target: ovs_main_bridge
+#      - type: cloudify.relationships.depends_on
+#        target: ovs_endpoint_3
+#      - type: cloudify.relationships.depends_on
+#        target: ovs_to_server_openflow_interface
+#      - type: cloudify.relationships.depends_on
+#        target: server_to_ovs_interface
+#      - type: cloudify.relationships.depends_on
+#        target: ovs_to_server_interface
+#
+#  ovs_server_to_endpoint_3_flow:
+#    type: cloudify.nodes.docker.ovs.bridge.PermanentFlow
+#    properties:
+#      hosts:
+#        - { get_input: docker_api_ip }
+#      port: { get_input: docker_api_port }
+#      api_version: { get_input: docker_api_version }
+#      container_name: { get_property: [ovs_container, name] }
+#      bridge_name: { get_property: [ovs_main_bridge, name] }
+#      table: { get_input: ovs_flows_default_table }
+#      priority: { get_input: ovs_flows_default_priority }
+#      in_port: { get_attribute: [ovs_to_server_openflow_interface, id] }
+#      out_port: { get_attribute: [ovs_endpoint_3, deployment, outputs, out_ofport] }
+#    relationships:
+#      - type: cloudify.relationships.contained_in
+#        target: ovs_main_bridge
+#      - type: cloudify.relationships.depends_on
+#        target: ovs_to_server_openflow_interface
+#      - type: cloudify.relationships.depends_on
+#        target: ovs_endpoint_3
+#
+#  ovs_endpoint_3_to_endpoint_2_flow:
+#    type: cloudify.nodes.docker.ovs.bridge.PermanentFlow
+#    properties:
+#      hosts:
+#        - { get_input: docker_api_ip }
+#      port: { get_input: docker_api_port }
+#      api_version: { get_input: docker_api_version }
+#      container_name: { get_property: [ovs_container, name] }
+#      bridge_name: { get_property: [ovs_main_bridge, name] }
+#      table: { get_input: ovs_flows_default_table }
+#      priority: { get_input: ovs_flows_default_priority }
+#      in_port: { get_attribute: [ovs_endpoint_3, deployment, outputs, in_ofport] }
+#      out_port: { get_attribute: [ovs_endpoint_2, deployment, outputs, out_ofport] }
+#    relationships:
+#      - type: cloudify.relationships.contained_in
+#        target: ovs_main_bridge
+#      - type: cloudify.relationships.depends_on
+#        target: ovs_endpoint_3
+#      - type: cloudify.relationships.depends_on
+#        target: ovs_endpoint_2
+#
+#  ovs_endpoint_2_to_endpoint_1_flow:
+#    type: cloudify.nodes.docker.ovs.bridge.PermanentFlow
+#    properties:
+#      hosts:
+#        - { get_input: docker_api_ip }
+#      port: { get_input: docker_api_port }
+#      api_version: { get_input: docker_api_version }
+#      container_name: { get_property: [ovs_container, name] }
+#      bridge_name: { get_property: [ovs_main_bridge, name] }
+#      table: { get_input: ovs_flows_default_table }
+#      priority: { get_input: ovs_flows_default_priority }
+#      in_port: { get_attribute: [ovs_endpoint_2, deployment, outputs, in_ofport] }
+#      out_port: { get_attribute: [ovs_endpoint_1, deployment, outputs, out_ofport] }
+#    relationships:
+#      - type: cloudify.relationships.contained_in
+#        target: ovs_main_bridge
+#      - type: cloudify.relationships.depends_on
+#        target: ovs_endpoint_2
+#      - type: cloudify.relationships.depends_on
+#        target: ovs_endpoint_1
+#
+#  ovs_endpoint_1_to_host_flow:
+#    type: cloudify.nodes.docker.ovs.bridge.PermanentFlow
+#    properties:
+#      hosts:
+#        - { get_input: docker_api_ip }
+#      port: { get_input: docker_api_port }
+#      api_version: { get_input: docker_api_version }
+#      container_name: { get_property: [ovs_container, name] }
+#      bridge_name: { get_property: [ovs_main_bridge, name] }
+#      table: { get_input: ovs_flows_default_table }
+#      priority: { get_input: ovs_flows_default_priority }
+#      in_port: { get_attribute: [ovs_endpoint_1, deployment, outputs, in_ofport] }
+#      out_port: { get_attribute: [ovs_to_host_openflow_interface, id] }
+#      actions:
+#        concat:
+#          - 'mod_dl_src:'
+#          - { get_attribute: [ovs_to_host_interface, mac_address] }
+#          - ',mod_dl_dst:'
+#          - { get_attribute: [host_to_ovs_interface, mac_address] }
+#          - ','
+#    relationships:
+#      - type: cloudify.relationships.contained_in
+#        target: ovs_main_bridge
+#      - type: cloudify.relationships.depends_on
+#        target: ovs_to_host_openflow_interface
+#      - type: cloudify.relationships.depends_on
+#        target: ovs_endpoint_1
+#      - type: cloudify.relationships.depends_on
+#        target: host_to_ovs_interface
+#      - type: cloudify.relationships.depends_on
+#        target: ovs_to_host_interface

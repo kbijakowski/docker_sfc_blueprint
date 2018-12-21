@@ -12,7 +12,7 @@
 
 3. Execute:
     ```
-        cfy install infrastructure_main-blueprint.yaml -i infrastructure_main-inputs.yaml -b cfy_lab_infrastructure
+        cfy install infrastructure_main-blueprint.yaml -i inputs/infrastructure_main-inputs.yaml -b cfy_lab_infrastructure
     ```
     
 4. Execute:
