@@ -409,3 +409,27 @@ node_types:
                     - { concat: ['in_port=', { get_property: [SELF, in_port] }] }
                     - ', '
                     - { concat: ['actions=', { get_property: [SELF, actions] }, 'output:', { get_property: [SELF, out_port] }] }
+
+  cloudify.nodes.docker.ovs.bridge.Flow:
+    derived_from: cloudify.nodes.docker.ovs.bridge.PermanentFlow
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        delete:
+          implementation: rest.cloudify_rest.tasks.execute
+          inputs:
+            template_file:
+              default: templates/container_exec.yaml
+            params:
+              default:
+                api_version: { get_property: [SELF, api_version] }
+                container_name: { get_property: [SELF, container_name] }
+                command:
+                  - 'ovs-ofctl'
+                  - 'del-flows'
+                  - '--strict'
+                  - { get_property: [SELF, bridge_name] }
+                  - concat:
+                    - { concat: ['in_port=', { get_property: [SELF, in_port] }] }
+                    - ', '
+                    - { concat: ['priority=', { get_property: [SELF, priority] }] }
+
