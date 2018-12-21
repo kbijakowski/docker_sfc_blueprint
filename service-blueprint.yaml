@@ -36,6 +36,9 @@ inputs:
   ovs_container_id:
     type: string
 
+  ovs_endpoint_bridge_name:
+    type: string
+
   input_network_subnet_cidr:
     type: string
 
@@ -170,38 +173,34 @@ node_templates:
       - type: cloudify.relationships.depends_on
         target: ovs_from_service_interface
 
-#  ovs_to_host_openflow_interface:
-#    type: cloudify.nodes.docker.ovs.bridge.Interface
-#    properties:
-#      hosts:
-#        - { get_input: docker_api_ip }
-#      port: { get_input: docker_api_port }
-#      api_version: { get_input: docker_api_version }
-#      name: { get_attribute: [ovs_to_host_interface, physical_interface] }
-#      container_name: { get_property: [ovs_container, name] }
-#      bridge_name: { get_property: [ovs_main_bridge, name] }
-#    relationships:
-#      - type: cloudify.relationships.contained_in
-#        target: ovs_to_host_interface
-#      - type: cloudify.relationships.connected_to
-#        target: ovs_main_bridge
-#
-#  ovs_to_server_openflow_interface:
-#    type: cloudify.nodes.docker.ovs.bridge.Interface
-#    properties:
-#      hosts:
-#        - { get_input: docker_api_ip }
-#      port: { get_input: docker_api_port }
-#      api_version: { get_input: docker_api_version }
-#      name: { get_attribute: [ovs_to_server_interface, physical_interface] }
-#      container_name: { get_property: [ovs_container, name] }
-#      bridge_name: { get_property: [ovs_main_bridge, name] }
-#    relationships:
-#      - type: cloudify.relationships.contained_in
-#        target: ovs_to_server_interface
-#      - type: cloudify.relationships.connected_to
-#        target: ovs_main_bridge
-#
+  ovs_to_service_openflow_interface:
+    type: cloudify.nodes.docker.ovs.bridge.Interface
+    properties:
+      hosts:
+        - { get_input: docker_api_ip }
+      port: { get_input: docker_api_port }
+      api_version: { get_input: docker_api_version }
+      name: { get_attribute: [ovs_to_service_interface, physical_interface] }
+      container_name: { get_input: ovs_container_id }
+      bridge_name: { get_input: ovs_endpoint_bridge_name }
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: ovs_to_service_interface
+
+  ovs_from_service_openflow_interface:
+    type: cloudify.nodes.docker.ovs.bridge.Interface
+    properties:
+      hosts:
+        - { get_input: docker_api_ip }
+      port: { get_input: docker_api_port }
+      api_version: { get_input: docker_api_version }
+      name: { get_attribute: [ovs_from_service_interface, physical_interface] }
+      container_name: { get_input: ovs_container_id }
+      bridge_name: { get_input: ovs_endpoint_bridge_name }
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: ovs_from_service_interface
+
 #  ovs_host_to_endpoint_1_flow:
 #    type: cloudify.nodes.docker.ovs.bridge.PermanentFlow
 #    properties:
@@ -212,7 +211,7 @@ node_templates:
 #      container_name: { get_property: [ovs_container, name] }
 #      bridge_name: { get_property: [ovs_main_bridge, name] }
 #      table: { get_input: ovs_flows_default_table }
-#      priority: { get_input: ovs_flows_default_priority }
+#      priority: { get_input: ovs_flows_service_priority }
 #      in_port: { get_attribute: [ovs_to_host_openflow_interface, id] }
 #      out_port: { get_attribute: [ovs_endpoint_1, deployment, outputs, in_ofport] }
 #    relationships:
@@ -233,7 +232,7 @@ node_templates:
 #      container_name: { get_property: [ovs_container, name] }
 #      bridge_name: { get_property: [ovs_main_bridge, name] }
 #      table: { get_input: ovs_flows_default_table }
-#      priority: { get_input: ovs_flows_default_priority }
+#      priority: { get_input: ovs_flows_service_priority }
 #      in_port: { get_attribute: [ovs_endpoint_1, deployment, outputs, out_ofport] }
 #      out_port: { get_attribute: [ovs_endpoint_2, deployment, outputs, in_ofport] }
 #    relationships:
@@ -254,7 +253,7 @@ node_templates:
 #      container_name: { get_property: [ovs_container, name] }
 #      bridge_name: { get_property: [ovs_main_bridge, name] }
 #      table: { get_input: ovs_flows_default_table }
-#      priority: { get_input: ovs_flows_default_priority }
+#      priority: { get_input: ovs_flows_service_priority }
 #      in_port: { get_attribute: [ovs_endpoint_2, deployment, outputs, out_ofport] }
 #      out_port: { get_attribute: [ovs_endpoint_3, deployment, outputs, in_ofport] }
 #    relationships:
@@ -275,7 +274,7 @@ node_templates:
 #      container_name: { get_property: [ovs_container, name] }
 #      bridge_name: { get_property: [ovs_main_bridge, name] }
 #      table: { get_input: ovs_flows_default_table }
-#      priority: { get_input: ovs_flows_default_priority }
+#      priority: { get_input: ovs_flows_service_priority }
 #      in_port: { get_attribute: [ovs_endpoint_3, deployment, outputs, out_ofport] }
 #      out_port: { get_attribute: [ovs_to_server_openflow_interface, id] }
 #      actions:
@@ -307,7 +306,7 @@ node_templates:
 #      container_name: { get_property: [ovs_container, name] }
 #      bridge_name: { get_property: [ovs_main_bridge, name] }
 #      table: { get_input: ovs_flows_default_table }
-#      priority: { get_input: ovs_flows_default_priority }
+#      priority: { get_input: ovs_flows_service_priority }
 #      in_port: { get_attribute: [ovs_to_server_openflow_interface, id] }
 #      out_port: { get_attribute: [ovs_endpoint_3, deployment, outputs, out_ofport] }
 #    relationships:
@@ -328,7 +327,7 @@ node_templates:
 #      container_name: { get_property: [ovs_container, name] }
 #      bridge_name: { get_property: [ovs_main_bridge, name] }
 #      table: { get_input: ovs_flows_default_table }
-#      priority: { get_input: ovs_flows_default_priority }
+#      priority: { get_input: ovs_flows_service_priority }
 #      in_port: { get_attribute: [ovs_endpoint_3, deployment, outputs, in_ofport] }
 #      out_port: { get_attribute: [ovs_endpoint_2, deployment, outputs, out_ofport] }
 #    relationships:
@@ -349,7 +348,7 @@ node_templates:
 #      container_name: { get_property: [ovs_container, name] }
 #      bridge_name: { get_property: [ovs_main_bridge, name] }
 #      table: { get_input: ovs_flows_default_table }
-#      priority: { get_input: ovs_flows_default_priority }
+#      priority: { get_input: ovs_flows_service_priority }
 #      in_port: { get_attribute: [ovs_endpoint_2, deployment, outputs, in_ofport] }
 #      out_port: { get_attribute: [ovs_endpoint_1, deployment, outputs, out_ofport] }
 #    relationships:
@@ -370,7 +369,7 @@ node_templates:
 #      container_name: { get_property: [ovs_container, name] }
 #      bridge_name: { get_property: [ovs_main_bridge, name] }
 #      table: { get_input: ovs_flows_default_table }
-#      priority: { get_input: ovs_flows_default_priority }
+#      priority: { get_input: ovs_flows_service_priority }
 #      in_port: { get_attribute: [ovs_endpoint_1, deployment, outputs, in_ofport] }
 #      out_port: { get_attribute: [ovs_to_host_openflow_interface, id] }
 #      actions:
