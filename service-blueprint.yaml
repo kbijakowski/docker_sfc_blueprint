@@ -51,10 +51,10 @@ inputs:
   ovs_flows_service_priority:
     type: string
 
-  ovs_endpoint_bridge_from_main_bridge_ofport:
+  ovs_endpoint_bridge_in_ofport:
     type: string
 
-  ovs_endpoint_bridge_to_main_bridge_ofport:
+  ovs_endpoint_bridge_out_ofport:
     type: string
 
 node_templates:
@@ -218,7 +218,7 @@ node_templates:
       bridge_name: { get_input: ovs_endpoint_bridge_name }
       table: { get_input: ovs_flows_default_table }
       priority: { get_input: ovs_flows_service_priority }
-      in_port: { get_input: ovs_endpoint_bridge_from_main_bridge_ofport }
+      in_port: { get_input: ovs_endpoint_bridge_in_ofport }
       out_port: { get_attribute: [ovs_to_service_openflow_interface, id] }
       actions:
         concat:
@@ -247,7 +247,7 @@ node_templates:
       table: { get_input: ovs_flows_default_table }
       priority: { get_input: ovs_flows_service_priority }
       in_port: { get_attribute: [ovs_from_service_openflow_interface, id] }
-      out_port: { get_input: ovs_endpoint_bridge_to_main_bridge_ofport }
+      out_port: { get_input: ovs_endpoint_bridge_out_ofport }
     relationships:
       - type: cloudify.relationships.depends_on
         target: ovs_from_service_openflow_interface
@@ -263,7 +263,7 @@ node_templates:
       bridge_name: { get_input: ovs_endpoint_bridge_name }
       table: { get_input: ovs_flows_default_table }
       priority: { get_input: ovs_flows_service_priority }
-      in_port: { get_input: ovs_endpoint_bridge_to_main_bridge_ofport }
+      in_port: { get_input: ovs_endpoint_bridge_out_ofport }
       out_port: { get_attribute: [ovs_from_service_openflow_interface, id] }
       actions:
         concat:
@@ -292,7 +292,7 @@ node_templates:
       table: { get_input: ovs_flows_default_table }
       priority: { get_input: ovs_flows_service_priority }
       in_port: { get_attribute: [ovs_to_service_openflow_interface, id] }
-      out_port: { get_input: ovs_endpoint_bridge_from_main_bridge_ofport }
+      out_port: { get_input: ovs_endpoint_bridge_in_ofport }
     relationships:
       - type: cloudify.relationships.depends_on
         target: ovs_to_service_openflow_interface

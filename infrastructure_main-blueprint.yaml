@@ -304,6 +304,8 @@ node_templates:
           outputs:
             main_bridge_to_endpoint_bridge_ofport: in_ofport
             main_bridge_from_endpoint_bridge_ofport: out_ofport
+            endpoint_bridge_from_main_bridge_ofport: endpoint_in_ofport
+            endpoint_bridge_to_main_bridge_ofport: endpoint_out_ofport
           logs:
             redirect: true
     relationships:
@@ -332,6 +334,8 @@ node_templates:
           outputs:
             main_bridge_to_endpoint_bridge_ofport: in_ofport
             main_bridge_from_endpoint_bridge_ofport: out_ofport
+            endpoint_bridge_from_main_bridge_ofport: endpoint_in_ofport
+            endpoint_bridge_to_main_bridge_ofport: endpoint_out_ofport
           logs:
             redirect: true
     relationships:
@@ -360,6 +364,8 @@ node_templates:
           outputs:
             main_bridge_to_endpoint_bridge_ofport: in_ofport
             main_bridge_from_endpoint_bridge_ofport: out_ofport
+            endpoint_bridge_from_main_bridge_ofport: endpoint_in_ofport
+            endpoint_bridge_to_main_bridge_ofport: endpoint_out_ofport
           logs:
             redirect: true
     relationships:
@@ -557,10 +563,48 @@ node_templates:
         target: ovs_to_host_interface
 
 outputs:
-  ping_check_command:
+  ovs:
     value:
-      concat:
-        - 'docker exec '
-        - { get_property: [host_container, name] }
-        - ' ping '
-        - { get_attribute: [server_to_ovs_interface, ip_address] }
+      container_id: { get_attribute: [ovs_container, result_properties, id] }
+  server:
+    value:
+      ip: { get_attribute: [server_to_ovs_interface, ip_address] }
+  endpoint_1:
+    value:
+      ovs_endpoint_bridge_in_ofport: { get_attribute: [ovs_endpoint_1, deployment, outputs, endpoint_in_ofport] }
+      ovs_endpoint_bridge_out_ofport: { get_attribute: [ovs_endpoint_1, deployment, outputs, endpoint_out_ofport] }
+      install_commad:
+        concat:
+          - 'cfy install service-blueprint.yaml -b cfy_lab_service_1 -i inputs/service_1-inputs.yaml'
+          - ' -i ovs_container_id='
+          - { get_attribute: [ovs_container, result_properties, id] }
+          - ' -i ovs_endpoint_bridge_in_ofport='
+          - { get_attribute: [ovs_endpoint_1, deployment, outputs, endpoint_in_ofport] }
+          - ' -i ovs_endpoint_bridge_out_ofport='
+          - { get_attribute: [ovs_endpoint_1, deployment, outputs, endpoint_out_ofport] }
+  endpoint_2:
+    value:
+      ovs_endpoint_bridge_in_ofport: { get_attribute: [ovs_endpoint_2, deployment, outputs, endpoint_in_ofport] }
+      ovs_endpoint_bridge_out_ofport: { get_attribute: [ovs_endpoint_2, deployment, outputs, endpoint_out_ofport] }
+      install_commad:
+        concat:
+          - 'cfy install service-blueprint.yaml -b cfy_lab_service_2 -i inputs/service_2-inputs.yaml'
+          - ' -i ovs_container_id='
+          - { get_attribute: [ovs_container, result_properties, id] }
+          - ' -i ovs_endpoint_bridge_in_ofport='
+          - { get_attribute: [ovs_endpoint_2, deployment, outputs, endpoint_in_ofport] }
+          - ' -i ovs_endpoint_bridge_out_ofport='
+          - { get_attribute: [ovs_endpoint_2, deployment, outputs, endpoint_out_ofport] }
+  endpoint_3:
+    value:
+      ovs_endpoint_bridge_in_ofport: { get_attribute: [ovs_endpoint_3, deployment, outputs, endpoint_in_ofport] }
+      ovs_endpoint_bridge_out_ofport: { get_attribute: [ovs_endpoint_3, deployment, outputs, endpoint_out_ofport] }
+      install_commad:
+        concat:
+          - 'cfy install service-blueprint.yaml -b cfy_lab_service_3 -i inputs/service_3-inputs.yaml'
+          - ' -i ovs_container_id='
+          - { get_attribute: [ovs_container, result_properties, id] }
+          - ' -i ovs_endpoint_bridge_in_ofport='
+          - { get_attribute: [ovs_endpoint_3, deployment, outputs, endpoint_in_ofport] }
+          - ' -i ovs_endpoint_bridge_out_ofport='
+          - { get_attribute: [ovs_endpoint_3, deployment, outputs, endpoint_out_ofport] }
