@@ -2,11 +2,73 @@
 
 ## Overview
 
-TBD
+Purpose of this example is to show how TOSCA-based orchestration may be used to provisioning of virtualized network services chain in non-specialized environment.
 
+In this example Cloudify orchestration was used.
+Repository consists of Cloudify services descriptors (blueprints).
+
+As result of execution of this example you will have fully-functional service chain with 3 services.
+
+![](https://user-images.githubusercontent.com/20417307/50763921-83010f80-1271-11e9-9455-cf0f050a14ea.jpg)
+
+All services and infrastructure elements are run as docker containers.
+During example execution 5 docker containers will be created:
+* **host** - container to which we can attach terminal session and check connectivity with server through service chain 
+* **server** - container running 2 python SimpleHTTPServers on ***8080*** and ***8181*** ports
+* **vRouter** - 1st service - container acts as virtual router
+* **vFirewall** - 2nd service - container using iptables to drop HTTP traffic on ***8181*** port 
+* **vURLFilter** - 3rd service - container running ***squid3***. Should restrict access to HTTP server on ***8080*** port 
+
+Also connections between containers are made using standard docker networks (bridge) API. 
+Orchestrator uses docker REST API to provision all elements and configuration.
+
+![](https://user-images.githubusercontent.com/20417307/50763927-8399a600-1271-11e9-8fba-c0ce3b860d2c.jpg)
+
+To steer traffic between services one container running Open vSwitch is used.
+This container is connected by docker networks with each of containers.
+
+In OvS container one ***main*** OpenFlow bridge has been defined - it is ***br0***.
+Its role is to steer traffic between *input* (host container), *output* (server container) and *endpoints* (additional OpenFlow bridges dedicated to plug services in).   
+
+***Endpoint*** bridge can be considered and **connector** to which you can plug your own service. 
+Each of ***endpoint*** OpenFlow bridges: ***br1***, ***br2*** and ***br3*** have initially 2 *patch* interfaces with peers defined in *main* brigge interfaces.
+In initial mode it forwards traffic between its patch interfaces - this behaviour enables traffic to be forwarded without any service plugged.
+During service blueprint installation new service is plugged to endpoint bridge.
+To new interfaces connected to *endpoint* bridge and appropiate docker networks are created.
+Installation of *service blueprint* reconfigures also OpenFlow flows defined in *endpoint* bridge to forward traffic between patch interfaces connected to *br0* and external interfaces connected to service networks.
+During service blueprint uninstallation external interfaces are removed and flows are "reverted" to forward traffic again between patch interfaces. 
+Purpose of introducing this kind of architecture was to provide additional abstraction layer - we can simply plug and unplug service without need of main bridge flows reconfiguration.
+ 
+Each service container has interfaces to 2 networks: "input" chain network and "output" chain network.
+ 
 ## Implementation
 
-TBD
+![](https://user-images.githubusercontent.com/20417307/50763920-83010f80-1271-11e9-9216-ab08958341a7.jpg)
+
+Solution has been implemented as set o 3 blueprints:
+
+* **main infrastructure blueprint** - responsible for provisioning of:
+    * *host*, *server* and *ovs* containers
+    * docker newtorks between containers
+    * *main OpenFlow bridge (br0)* on ovs container
+    * proper openflow interfaces connected to *br0*
+    * flows on *br0*
+    
+    **It also uses** ***endpoint infrastructure blueprint*** **to provision 3 endpoint blueprint** 
+* **endpoint infrastructure blueprint** - responsible for provisioning of:
+    * *endpoint OpenFlow bridge* on ovs container
+    * proper openflow interfaces connected to *endpoint bridge*
+    * flows on *endpoint bridge*
+* **service blueprint** - responsible for provisioning of:
+    * service container
+    * simple service configuration
+    * "input" and "output" docker newtorks dedicated for each service
+    * proper openflow interfaces connected to *endpoint bridge*
+    * flows reconfiguration on *endpoint bridge*
+
+***endpoint infrastructure blueprint*** must be uploaded first on Cloudify Manager.
+It is used (read and executed) by ***main infrastructure blueprint*** during its installation.  
+
 
 ## Prerequisites
 
