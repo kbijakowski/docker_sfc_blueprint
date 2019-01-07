@@ -161,7 +161,7 @@ f6459a81cb93        bridge                   bridge              local
 
 #### Stage 1 - chain infrastructure installation
 
-Purpose of this step execution is to create SFC infrastructure - all things required to start inserting services into chain, lie:
+Result of execution of thi stage will be creation of SFC infrastructure - all things required to start services insertion into chain, like:
 * containers with host, OpenvSwitch and server
 * networks connecting host with OvS and OvS with server
 * proper network interfaces
@@ -171,56 +171,281 @@ Purpose of this step execution is to create SFC infrastructure - all things requ
 When blueprints installation will be completed successfully, you should have ready SFC setup to which 3 services may be plugged.
 You should be able to access / ping server from the host, but traffic will be forwarded only through OvS bridges (no services containers plugged).
 
-**[TODO] IMAGE**  
+![](https://user-images.githubusercontent.com/20417307/50763923-83010f80-1271-11e9-8442-cceaf0adaca2.jpg)
 
 1. Upload ***infrastructure-endpoint blueprint***. It will be used in step 2 by *infrastructure-main blueprint*. Execute:
-    ```
+    ```bash
     cfy blueprints upload infrastructure_endpoint-blueprint.yaml -b cfy_lab_infrastructure_endpoint
     ```
 
-2. Install ***infrastructure-main blueprint***
+2. Install ***infrastructure-main blueprint***:
     ```
     cfy install infrastructure_main-blueprint.yaml -i inputs/infrastructure_main-inputs.yaml -b cfy_lab_infrastructure
     ```
     
-3. Execute:
+3. Gather outputs of *install* workflow execution:
 
-    ```
+    ```bash
     cfy deployments outputs cfy_lab_infrastructure
     ```
 
-4. Execute command from output *ping_check_command* 
+    You should find in outputs:
+    * **server_ip** - IP of server container interface placed in chain network. It will be uses to test connectivity to the server from host container.
+    * **service_1_install_commad** - CFY CLI command which will be used later to install service 1 (vRouter) 
+    * **service_2_install_commad** - CFY CLI command which will be used later to install service 2 (vFirewall)
+    * **service_3_install_commad** - CFY CLI command which will be used later to install service 3 (vURLFilter)
+    
+    Please copy outputs and keep them for further steps.
 
-5. Execute:
+4. Verify containers and networks creation:
+    ```bash
+    docker ps
     ```
-        docker ps -a
-        docker network list
+    You should find 3 new containers: ***cfy_lab_host***, ***cfy_lab_ovs***, ***cfy_lab_server***.
+    
+    ```bash
+    docker network list
     ```
+    
+    You should find 2 new networks: ***cfy_lab_host_ovs_net***, ***cfy_lab_ovs_server_net***.
+    
+5. Observe OpenFlow bridges configuration and flows. Execute:
+    ```bash
+    docker exec cfy_lab_ovs ovs-ofctl show br0
+    docker exec cfy_lab_ovs ovs-ofctl show br1
+    docker exec cfy_lab_ovs ovs-ofctl show br2
+    docker exec cfy_lab_ovs ovs-ofctl show br3
+    ```
+   
+    You should observe bridges and interfaces configuration depicted on the image above.
+
+    ```bash
+    docker exec cfy_lab_ovs ovs-ofctl dump-flows br0
+    ```
+    
+    You should observe flows responsible for forwarding traffic between host, server and endpoint bridges.
+    
+    ```bash
+    docker exec cfy_lab_ovs ovs-ofctl dump-flows br1
+    docker exec cfy_lab_ovs ovs-ofctl dump-flows br2
+    docker exec cfy_lab_ovs ovs-ofctl dump-flows br3
+    ```
+    For each *endpoint* bridge you should observe flows responsible for traffic forwarding between patch interfaces.     
+    
+    You can also reexecute this step during step 6. execution to observer packet counters.
+
+6. Open new terminal. 
+   Attach to the *host* container terminal:
+   
+   ```bash
+    docker exec -it cfy_lab_host /bin/bash
+    ```
+   **Keep this session open ! Commands which should be executed in this host terminal will be marked with** ***[HT]***.
+   
+   Try to ping server - use server IP obtained from deployment outputs:
+   
+   ```bash
+   [HT] ping <server_ip>
+   ```
+   
+   You should receive response from the server.
+   Then try to open HTTP content hosted by server:
+   
+   ```bash
+   [HT] curl <server_ip>:8080
+   [HT] curl <server_ip>:8181
+   ```
+   
+   For both ports you should see directory list returned by pythons SimpleHTTPServer
 
 #### Stage 2 - vRouter service insertion
 
+Now you will plug first service into chain:
+
+![](https://user-images.githubusercontent.com/20417307/50763925-83010f80-1271-11e9-99fe-cb17bee3ea98.jpg)
+
+1. Paste content of ***service_1_install_commad*** output gathered before into console and execute it.
+
+2. Verify containers and networks creation:
+    ```bash
+    docker ps
+    ```
+    You should find 1 new container: ***cfy_lab_service_1***
+    
+    ```bash
+    docker network list
+    ```
+    
+    You should find 2 new networks: ***cfy_lab_ovs_service_1_net***, ***cfy_lab_ovs_service_1_net***.
+    
+3. Observe OpenFlow bridge **br1** reconfiguration:
+    ```bash
+    docker exec cfy_lab_ovs ovs-ofctl show br1
+    ```
+ 
+    2 new interfaces should be added.
+ 
+    ```bash
+    docker exec cfy_lab_ovs ovs-ofctl dump-flows br1
+    ```
+     
+    Flows should be reconfigured to pass traffic to / from service networks.
+
+4. Verify connectivity with server
+
+   Try to ping server - use server IP obtained from deployment outputs:
+   
+   ```bash
+   [HT] ping <server_ip>
+   ```
+   
+   You should receive response from the server.
+   Then try to open HTTP content hosted by server:
+   
+   ```bash
+   [HT] curl <server_ip>:8080
+   [HT] curl <server_ip>:8181
+   ```
+   
+   For both ports you should see directory list returned by pythons SimpleHTTPServer
+
 #### Stage 3 - vFirewall service insertion
+
+Second service will be plugged into chain:
+
+![](https://user-images.githubusercontent.com/20417307/50763926-8399a600-1271-11e9-92fe-36cc96e30054.jpg)
+
+1. Paste content of ***service_2_install_commad*** output gathered before into console and execute it.
+
+2. (optional) Using commands mentioned in previous step you may observe that new container, networks have been created and flows reconfigured.
+
+3. Verify connectivity with server
+
+   Try to ping server - use server IP obtained from deployment outputs:
+   
+   ```bash
+   [HT] ping <server_ip>
+   ```
+   
+   You should receive response from the server.
+   Then try to open HTTP content hosted by server:
+   
+   ```bash
+   [HT] curl <server_ip>:8080
+   [HT] curl <server_ip>:8181
+   ```
+   
+   For 8080 you should see directory list returned by pythons SimpleHTTPServer
+   
+   **For 8181 traffic should be dropped by firewall**
+
 
 #### Stage 4 - vURLFilter service insertion
 
+You will have chain with all (3) service: 
+
+![](https://user-images.githubusercontent.com/20417307/50763927-8399a600-1271-11e9-8fba-c0ce3b860d2c.jpg)
+
+1. Paste content of ***service_3_install_commad*** output gathered before into console and execute it.
+
+2. (optional) Using commands mentioned in previous steps you may observe that new container, networks have been created and flows reconfigured.
+
+3. Verify connectivity with server
+
+   Try to ping server - use server IP obtained from deployment outputs:
+   
+   ```bash
+   [HT] ping <server_ip>
+   ```
+   
+   You should receive response from the server.
+   Then try to open HTTP content hosted by server:
+   
+   ```bash
+   [HT] curl <server_ip>:8080
+   [HT] curl <server_ip>:8181
+   ```
+   
+   **For 8080 you should see receive notification page with ACCESS DENIED information (triffic filtered by URL filter)**
+   
+   **For 8181 traffic should be dropped by firewall**
+
 #### Stage 5 - single service removal (vFirewall)
+
+Now you will remove second service from the chain to observe that removal of randomly choosen service won't break traffic forwarding in chain:
+
+![](https://user-images.githubusercontent.com/20417307/50763928-8399a600-1271-11e9-9cc1-95005b73ff20.jpg)
+
+1. Run uninstallation of service 2:
+
+    ```bash
+    cfy uninstall cfy_lab_service_2
+    ```
+
+2. (optional) Using commands mentioned in previous steps you may observe that one container and 2 networks have been deleted.
+
+3. Observe OpenFlow bridge **br2** reconfiguration:
+    ```bash
+    docker exec cfy_lab_ovs ovs-ofctl show br2
+    ```
+ 
+    2 "external" interfaces should be removed.
+ 
+    ```bash
+    docker exec cfy_lab_ovs ovs-ofctl dump-flows br2
+    ```
+     
+    Previously installed flows should be removed.
+
+4. Verify connectivity with server
+
+   Try to ping server - use server IP obtained from deployment outputs:
+   
+   ```bash
+   [HT] ping <server_ip>
+   ```
+   
+   You should receive response from the server.
+   Then try to open HTTP content hosted by server:
+   
+   ```bash
+   [HT] curl <server_ip>:8080
+   [HT] curl <server_ip>:8181
+   ```
+   
+   For 8080 you should see receive notification page with ACCESS DENIED information (triffic filtered by URL filter)
+   
+   **For 8181 you should see directory list returned by pythons SimpleHTTPServer**
 
 #### Stage 6 - service cleanup
 
-#### Stage 7 - chain infrastructure uninstallation
+You will remove rest of existing services:
+
+![](https://user-images.githubusercontent.com/20417307/50763929-84323c80-1271-11e9-8f0a-b2c17a88c44b.jpg)
+
+1. Run uninstallation:
+
+    ```bash
+    cfy uninstall cfy_lab_service_3
+    ```
     
+    and then
+    
+    ```bash
+    cfy uninstall cfy_lab_service_1
+    ```
+2. You may execute some for mentioned before checks. 
+   You should have clean chain without services.
+   You should observe the same behaviour like after execution of stage 1 commands.
+
+#### Stage 7 - chain infrastructure uninstallation
+
+Perform full cleanup - uninstall *main infrastructure* blueprint deployment:
+
 1. Execute:     
     ```
-        cfy uninstall cfy_lab_infrastructure
+    cfy uninstall cfy_lab_infrastructure
+    cfy blueprints delete cfy_lab_infrastructure_endpoint
     ```
 
-2. Execute:     
-    ```
-        cfy blueprints delete cfy_lab_infrastructure_endpoint
-    ``` 
-    
-3. Execute:
-    ```
-        docker ps -a
-        docker network list
-    ```
+2. Using mentioned before commands you should observe that all docker resources created before by Cloudify have been deleted.
