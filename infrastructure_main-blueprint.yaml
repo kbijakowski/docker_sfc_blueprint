@@ -565,7 +565,7 @@ node_templates:
 outputs:
   server_ip:
     value: { get_attribute: [server_to_ovs_interface, ip_address] }
-  service_1_install_commad:
+  service_1_install_command:
     value:
       concat:
         - 'cfy install service-blueprint.yaml -b cfy_lab_service_1 -i inputs/service_1-inputs.yaml'
@@ -575,7 +575,7 @@ outputs:
         - { get_attribute: [ovs_endpoint_1, deployment, outputs, endpoint_in_ofport] }
         - ' -i ovs_endpoint_bridge_out_ofport='
         - { get_attribute: [ovs_endpoint_1, deployment, outputs, endpoint_out_ofport] }
-  service_2_install_commad:
+  service_2_install_command:
     value:
       concat:
         - 'cfy install service-blueprint.yaml -b cfy_lab_service_2 -i inputs/service_2-inputs.yaml'
@@ -585,7 +585,7 @@ outputs:
         - { get_attribute: [ovs_endpoint_2, deployment, outputs, endpoint_in_ofport] }
         - ' -i ovs_endpoint_bridge_out_ofport='
         - { get_attribute: [ovs_endpoint_2, deployment, outputs, endpoint_out_ofport] }
-  service_3_install_commad:
+  service_3_install_command:
     value:
       concat:
         - 'cfy install service-blueprint.yaml -b cfy_lab_service_3 -i inputs/service_3-inputs.yaml'

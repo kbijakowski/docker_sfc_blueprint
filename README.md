@@ -4,16 +4,15 @@
 
 Purpose of this example is to show how TOSCA-based orchestration may be used to provisioning of virtualized network services chain in non-specialized environment.
 
-In this example Cloudify orchestration was used.
+In this example Cloudify orchestration will be used.
 Repository consists of Cloudify services descriptors (blueprints).
 
 As result of execution of this example you will have fully-functional service chain with 3 services.
 
-![](https://user-images.githubusercontent.com/20417307/50763921-83010f80-1271-11e9-9455-cf0f050a14ea.jpg)
-
+![docker_sfc_concept](https://user-images.githubusercontent.com/20417307/50824853-f1100a00-1337-11e9-9edc-49f19dd0cc33.jpg)
 All services and infrastructure elements are run as docker containers.
 During example execution 5 docker containers will be created:
-* **host** - container to which we can attach terminal session and check connectivity with server through service chain 
+* **host** - container to which you can attach terminal session and check connectivity with server through service chain 
 * **server** - container running 2 python SimpleHTTPServers on ***8080*** and ***8181*** ports
 * **vRouter** - 1st service - container acts as virtual router
 * **vFirewall** - 2nd service - container using iptables to drop HTTP traffic on ***8181*** port 
@@ -22,7 +21,7 @@ During example execution 5 docker containers will be created:
 Also connections between containers are made using standard docker networks (bridge) API. 
 Orchestrator uses docker REST API to provision all elements and configuration.
 
-![](https://user-images.githubusercontent.com/20417307/50763927-8399a600-1271-11e9-8fba-c0ce3b860d2c.jpg)
+![docker_sfc_base](https://user-images.githubusercontent.com/20417307/50824851-f1100a00-1337-11e9-8c83-f5d6f2d69e69.jpg)
 
 To steer traffic between services one container running Open vSwitch is used.
 This container is connected by docker networks with each of containers.
@@ -31,19 +30,19 @@ In OvS container one ***main*** OpenFlow bridge has been defined - it is ***br0*
 Its role is to steer traffic between *input* (host container), *output* (server container) and *endpoints* (additional OpenFlow bridges dedicated to plug services in).   
 
 ***Endpoint*** bridge can be considered and **connector** to which you can plug your own service. 
-Each of ***endpoint*** OpenFlow bridges: ***br1***, ***br2*** and ***br3*** have initially 2 *patch* interfaces with peers defined in *main* brigge interfaces.
-In initial mode it forwards traffic between its patch interfaces - this behaviour enables traffic to be forwarded without any service plugged.
-During service blueprint installation new service is plugged to endpoint bridge.
-To new interfaces connected to *endpoint* bridge and appropiate docker networks are created.
+Each of ***endpoint*** OpenFlow bridges: ***br1***, ***br2*** and ***br3*** has initially 2 *patch* interfaces with peers connected to *main* bridge.
+In initial mode it forwards traffic between patch interfaces - this behaviour enables chain traffic to be forwarded between host and server without any service plugged.
+During service blueprint installation new service is plugged in to endpoint bridge.
+Two new interfaces connected to *endpoint* bridge and appropriate docker networks are created.
 Installation of *service blueprint* reconfigures also OpenFlow flows defined in *endpoint* bridge to forward traffic between patch interfaces connected to *br0* and external interfaces connected to service networks.
 During service blueprint uninstallation external interfaces are removed and flows are "reverted" to forward traffic again between patch interfaces. 
-Purpose of introducing this kind of architecture was to provide additional abstraction layer - we can simply plug and unplug service without need of main bridge flows reconfiguration.
+Purpose of introducing this kind of architecture was to provide additional abstraction layer - you can simply plug and unplug service without need of main bridge flows reconfiguration.
  
 Each service container has interfaces to 2 networks: "input" chain network and "output" chain network.
  
 ## Implementation
 
-![](https://user-images.githubusercontent.com/20417307/50763920-83010f80-1271-11e9-9216-ab08958341a7.jpg)
+![docker_sfc_blueprints](https://user-images.githubusercontent.com/20417307/50824852-f1100a00-1337-11e9-8f63-164df4591a09.jpg)
 
 Solution has been implemented as set o 3 blueprints:
 
@@ -54,7 +53,7 @@ Solution has been implemented as set o 3 blueprints:
     * proper openflow interfaces connected to *br0*
     * flows on *br0*
     
-    **It also uses** ***endpoint infrastructure blueprint*** **to provision 3 endpoint blueprint** 
+    **It also uses** ***endpoint infrastructure blueprint*** **to install 3 deployments of endpoint blueprint** 
 * **endpoint infrastructure blueprint** - responsible for provisioning of:
     * *endpoint OpenFlow bridge* on ovs container
     * proper openflow interfaces connected to *endpoint bridge*
@@ -161,7 +160,7 @@ f6459a81cb93        bridge                   bridge              local
 
 #### Stage 1 - chain infrastructure installation
 
-Result of execution of thi stage will be creation of SFC infrastructure - all things required to start services insertion into chain, like:
+Result of execution of this stage will be creation of SFC infrastructure - all things required to start services insertion into chain, like:
 * containers with host, OpenvSwitch and server
 * networks connecting host with OvS and OvS with server
 * proper network interfaces
@@ -171,7 +170,7 @@ Result of execution of thi stage will be creation of SFC infrastructure - all th
 When blueprints installation will be completed successfully, you should have ready SFC setup to which 3 services may be plugged.
 You should be able to access / ping server from the host, but traffic will be forwarded only through OvS bridges (no services containers plugged).
 
-![](https://user-images.githubusercontent.com/20417307/50763923-83010f80-1271-11e9-8442-cceaf0adaca2.jpg)
+![docker_sfc_stage_1](https://user-images.githubusercontent.com/20417307/50824854-f1a8a080-1337-11e9-8906-822f8fd1c672.jpg)
 
 1. Upload ***infrastructure-endpoint blueprint***. It will be used in step 2 by *infrastructure-main blueprint*. Execute:
     ```bash
@@ -232,7 +231,7 @@ You should be able to access / ping server from the host, but traffic will be fo
     ```
     For each *endpoint* bridge you should observe flows responsible for traffic forwarding between patch interfaces.     
     
-    You can also reexecute this step during step 6. execution to observer packet counters.
+    You can also execute these commands again with step 6. to observe packet counters.
 
 6. Open new terminal. 
    Attach to the *host* container terminal:
@@ -240,7 +239,7 @@ You should be able to access / ping server from the host, but traffic will be fo
    ```bash
     docker exec -it cfy_lab_host /bin/bash
     ```
-   **Keep this session open ! Commands which should be executed in this host terminal will be marked with** ***[HT]***.
+   **Keep this session open ! Commands which should be executed in this host terminal will be marked with**  ***[HT]***.
    
    Try to ping server - use server IP obtained from deployment outputs:
    
@@ -262,9 +261,9 @@ You should be able to access / ping server from the host, but traffic will be fo
 
 Now you will plug first service into chain:
 
-![](https://user-images.githubusercontent.com/20417307/50763925-83010f80-1271-11e9-99fe-cb17bee3ea98.jpg)
+![docker_sfc_stage_2](https://user-images.githubusercontent.com/20417307/50824855-f1a8a080-1337-11e9-849c-61fbeaea0265.jpg)
 
-1. Paste content of ***service_1_install_commad*** output gathered before into console and execute it.
+1. Paste content of ***service_1_install_command*** output gathered before into console and execute it.
 
 2. Verify containers and networks creation:
     ```bash
@@ -313,9 +312,9 @@ Now you will plug first service into chain:
 
 Second service will be plugged into chain:
 
-![](https://user-images.githubusercontent.com/20417307/50763926-8399a600-1271-11e9-92fe-36cc96e30054.jpg)
+![docker_sfc_stage_3](https://user-images.githubusercontent.com/20417307/50824856-f1a8a080-1337-11e9-960c-177968505c0e.jpg)
 
-1. Paste content of ***service_2_install_commad*** output gathered before into console and execute it.
+1. Paste content of ***service_2_install_command*** output gathered before into console and execute it.
 
 2. (optional) Using commands mentioned in previous step you may observe that new container, networks have been created and flows reconfigured.
 
@@ -342,11 +341,11 @@ Second service will be plugged into chain:
 
 #### Stage 4 - vURLFilter service insertion
 
-You will have chain with all (3) service: 
+You will have chain with all (3) services: 
 
-![](https://user-images.githubusercontent.com/20417307/50763927-8399a600-1271-11e9-8fba-c0ce3b860d2c.jpg)
+![docker_sfc_stage_4](https://user-images.githubusercontent.com/20417307/50824857-f1a8a080-1337-11e9-8206-17330aeb9168.jpg)
 
-1. Paste content of ***service_3_install_commad*** output gathered before into console and execute it.
+1. Paste content of ***service_3_install_command*** output gathered before into console and execute it.
 
 2. (optional) Using commands mentioned in previous steps you may observe that new container, networks have been created and flows reconfigured.
 
@@ -366,7 +365,7 @@ You will have chain with all (3) service:
    [HT] curl <server_ip>:8181
    ```
    
-   **For 8080 you should see receive notification page with ACCESS DENIED information (triffic filtered by URL filter)**
+   **For 8080 you should see receive notification page with ACCESS DENIED information (traffic filtered by URL filter)**
    
    **For 8181 traffic should be dropped by firewall**
 
@@ -374,9 +373,9 @@ You will have chain with all (3) service:
 
 Now you will remove second service from the chain to observe that removal of randomly choosen service won't break traffic forwarding in chain:
 
-![](https://user-images.githubusercontent.com/20417307/50763928-8399a600-1271-11e9-9cc1-95005b73ff20.jpg)
+![docker_sfc_stage_5](https://user-images.githubusercontent.com/20417307/50824858-f1a8a080-1337-11e9-8bff-16b7b1c85fa6.jpg)
 
-1. Run uninstallation of service 2:
+1. Run uninstallation of service 2 (vFirewall):
 
     ```bash
     cfy uninstall cfy_lab_service_2
@@ -413,7 +412,7 @@ Now you will remove second service from the chain to observe that removal of ran
    [HT] curl <server_ip>:8181
    ```
    
-   For 8080 you should see receive notification page with ACCESS DENIED information (triffic filtered by URL filter)
+   For 8080 you should see receive notification page with ACCESS DENIED information (traffic filtered by URL filter)
    
    **For 8181 you should see directory list returned by pythons SimpleHTTPServer**
 
@@ -421,7 +420,7 @@ Now you will remove second service from the chain to observe that removal of ran
 
 You will remove rest of existing services:
 
-![](https://user-images.githubusercontent.com/20417307/50763929-84323c80-1271-11e9-8f0a-b2c17a88c44b.jpg)
+![docker_sfc_stage_6](https://user-images.githubusercontent.com/20417307/50824859-f2413700-1337-11e9-9da6-d77a802e6163.jpg)
 
 1. Run uninstallation:
 
@@ -434,7 +433,7 @@ You will remove rest of existing services:
     ```bash
     cfy uninstall cfy_lab_service_1
     ```
-2. You may execute some for mentioned before checks. 
+2. You may execute some of mentioned before checks. 
    You should have clean chain without services.
    You should observe the same behaviour like after execution of stage 1 commands.
 
